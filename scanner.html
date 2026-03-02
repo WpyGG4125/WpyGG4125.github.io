@@ -3,27 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Universal Scanner App</title>
+    <title>Pro Barcode Matcher</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: sans-serif; background: #f4f4f9; margin: 0; display: flex; flex-direction: column; align-items: center; }
-        .container { width: 90%; max-width: 500px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-top: 20px; }
+        :root {
+            --primary: #007bff;
+            --success: #28a745;
+            --bg: #f8f9fa;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        .container { width: 100%; max-width: 450px; background: white; padding: 25px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); box-sizing: border-box; }
         
         /* Tabs */
-        .tabs { display: flex; border-bottom: 2px solid #ddd; margin-bottom: 20px; }
-        .tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; font-weight: bold; color: #666; }
-        .tab.active { color: #007bff; border-bottom: 3px solid #007bff; }
+        .tabs { display: flex; background: #eee; border-radius: 8px; padding: 4px; margin-bottom: 20px; }
+        .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; border-radius: 6px; font-weight: 600; color: #555; transition: 0.3s; }
+        .tab.active { background: white; color: var(--primary); shadow: 0 2px 5px rgba(0,0,0,0.1); }
 
         /* Scanner Area */
-        #reader { width: 100%; border-radius: 8px; overflow: hidden; background: #000; }
+        #reader { width: 100%; border-radius: 12px; overflow: hidden; background: #1a1a1a; }
         
-        /* UI Elements */
-        .input-group { margin-top: 15px; }
-        input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        .result-box { margin-top: 20px; padding: 15px; border-radius: 8px; background: #e9ecef; word-break: break-all; }
-        .status { font-weight: bold; margin-top: 10px; }
-        .match { color: green; }
-        .mismatch { color: red; }
+        /* Input & Results */
+        .input-group { margin-top: 20px; }
+        label { font-size: 0.9rem; color: #666; font-weight: 600; }
+        input { width: 100%; padding: 12px; margin-top: 8px; border: 2px solid #eee; border-radius: 8px; box-sizing: border-box; font-size: 1rem; outline: none; transition: border-color 0.3s; }
+        input:focus { border-color: var(--primary); }
+
+        .result-box { margin-top: 20px; padding: 15px; border-radius: 8px; background: #f1f3f5; text-align: center; }
+        #scannedResult { font-family: monospace; font-weight: bold; color: #333; }
+
+        /* Full Screen Success Popup */
+        .overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.95); z-index: 1000;
+            flex-direction: column; align-items: center; justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+        .popup-card { text-align: center; transform: scale(0.8); animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        
+        .circle-checkmark {
+            width: 100px; height: 100px; background: var(--success);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px; color: white; font-size: 60px;
+            box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
+        }
+
+        .btn-close {
+            margin-top: 30px; padding: 12px 30px; border: none; background: #333;
+            color: white; border-radius: 30px; cursor: pointer; font-weight: 600;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes popIn { to { transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -37,27 +68,32 @@
     <div id="reader"></div>
 
     <div id="barcodeVerification" class="input-group" style="display: none;">
-        <label for="verifyInput">Compare with Barcode:</label>
-        <input type="text" id="verifyInput" placeholder="Enter text to match...">
+        <label>Expected Content:</label>
+        <input type="text" id="verifyInput" placeholder="Type text to match barcode...">
     </div>
 
     <div class="result-box">
-        <strong>Result:</strong> <span id="scannedResult">Waiting for scan...</span>
-        <div id="comparisonStatus" class="status"></div>
+        <div style="font-size: 0.8rem; color: #888; margin-bottom: 5px;">SCANNED CONTENT</div>
+        <span id="scannedResult">...</span>
+    </div>
+</div>
+
+<div id="successOverlay" class="overlay">
+    <div class="popup-card">
+        <div class="circle-checkmark">✓</div>
+        <h1 style="margin: 0; color: #333;">Match Success!</h1>
+        <p id="matchedText" style="color: #666; margin-top: 10px;"></p>
+        <button class="btn-close" onclick="closePopup()">Scan Again</button>
     </div>
 </div>
 
 <script>
     let html5QrCode;
-    let currentMode = "QR_CODE"; // Default
-
-    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    let currentMode = "QR_CODE";
 
     function startScanner() {
-        if (html5QrCode) {
-            html5QrCode.stop().then(() => {
-                initScanner();
-            }).catch(() => initScanner());
+        if (html5QrCode && html5QrCode.isScanning) {
+            html5QrCode.stop().then(() => initScanner()).catch(() => initScanner());
         } else {
             initScanner();
         }
@@ -65,62 +101,66 @@
 
     function initScanner() {
         html5QrCode = new Html5Qrcode("reader");
-        const formatsToSupport = currentMode === "QR_CODE" 
+        
+        // Define dynamic aiming box
+        // QR = Square (250x250), Barcode = Slim Rectangle (300x100)
+        const boxSize = currentMode === "QR_CODE" 
+            ? { width: 250, height: 250 } 
+            : { width: 300, height: 120 };
+
+        const formats = currentMode === "QR_CODE" 
             ? [ Html5QrcodeSupportedFormats.QR_CODE ] 
-            : [ Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.EAN_8 ];
+            : [ Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.EAN_8, Html5QrcodeSupportedFormats.UPC_A ];
 
         html5QrCode.start(
             { facingMode: "environment" }, 
-            { fps: 10, qrbox: 250, formatsToSupported: formatsToSupport },
+            { 
+                fps: 15, 
+                qrbox: boxSize,
+                formatsToSupported: formats 
+            },
             onScanSuccess
-        );
+        ).catch(err => console.error("Camera start error:", err));
     }
 
     function onScanSuccess(decodedText) {
         document.getElementById('scannedResult').innerText = decodedText;
         
         if (currentMode === "BARCODE") {
-            checkMatch(decodedText);
+            const target = document.getElementById('verifyInput').value;
+            if (target && decodedText === target) {
+                showSuccess(decodedText);
+            }
         }
     }
 
-    function checkMatch(scannedText) {
-        const userInput = document.getElementById('verifyInput').value;
-        const statusDiv = document.getElementById('comparisonStatus');
+    function showSuccess(text) {
+        // Pause the scanner to prevent multiple triggers
+        html5QrCode.pause(); 
+        document.getElementById('matchedText').innerText = `"${text}"`;
+        document.getElementById('successOverlay').style.display = 'flex';
         
-        if (!userInput) {
-            statusDiv.innerText = "";
-            return;
-        }
+        // Vibrate phone if supported
+        if (navigator.vibrate) navigator.vibrate(200);
+    }
 
-        if (scannedText === userInput) {
-            statusDiv.innerText = "✓ Match Found!";
-            statusDiv.className = "status match";
-        } else {
-            statusDiv.innerText = "✗ No Match";
-            statusDiv.className = "status mismatch";
-        }
+    function closePopup() {
+        document.getElementById('successOverlay').style.display = 'none';
+        html5QrCode.resume();
     }
 
     function switchMode(mode) {
+        if (currentMode === mode) return;
         currentMode = mode;
         
-        // Update UI Tabs
         document.getElementById('qrTab').classList.toggle('active', mode === 'QR_CODE');
         document.getElementById('barTab').classList.toggle('active', mode === 'BARCODE');
-        
-        // Toggle Input Field
         document.getElementById('barcodeVerification').style.display = (mode === 'BARCODE') ? 'block' : 'none';
         
-        // Reset results
-        document.getElementById('scannedResult').innerText = "Waiting for scan...";
-        document.getElementById('comparisonStatus').innerText = "";
-
-        // Restart Scanner with new constraints
+        document.getElementById('scannedResult').innerText = "...";
         startScanner();
     }
 
-    // Initialize on load
     window.onload = startScanner;
 </script>
 
