@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Scanner App</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f9; margin: 0; display: flex; flex-direction: column; align-items: center; }
+        .container { width: 90%; max-width: 500px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-top: 20px; }
+        
+        /* Tabs */
+        .tabs { display: flex; border-bottom: 2px solid #ddd; margin-bottom: 20px; }
+        .tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; font-weight: bold; color: #666; }
+        .tab.active { color: #007bff; border-bottom: 3px solid #007bff; }
+
+        /* Scanner Area */
+        #reader { width: 100%; border-radius: 8px; overflow: hidden; background: #000; }
+        
+        /* UI Elements */
+        .input-group { margin-top: 15px; }
+        input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        .result-box { margin-top: 20px; padding: 15px; border-radius: 8px; background: #e9ecef; word-break: break-all; }
+        .status { font-weight: bold; margin-top: 10px; }
+        .match { color: green; }
+        .mismatch { color: red; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="tabs">
+        <div id="qrTab" class="tab active" onclick="switchMode('QR_CODE')">QR Code</div>
+        <div id="barTab" class="tab" onclick="switchMode('BARCODE')">Barcode</div>
+    </div>
+
+    <div id="reader"></div>
+
+    <div id="barcodeVerification" class="input-group" style="display: none;">
+        <label for="verifyInput">Compare with Barcode:</label>
+        <input type="text" id="verifyInput" placeholder="Enter text to match...">
+    </div>
+
+    <div class="result-box">
+        <strong>Result:</strong> <span id="scannedResult">Waiting for scan...</span>
+        <div id="comparisonStatus" class="status"></div>
+    </div>
+</div>
+
+<script>
+    let html5QrCode;
+    let currentMode = "QR_CODE"; // Default
+
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+    function startScanner() {
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+                initScanner();
+            }).catch(() => initScanner());
+        } else {
+            initScanner();
+        }
+    }
+
+    function initScanner() {
+        html5QrCode = new Html5Qrcode("reader");
+        const formatsToSupport = currentMode === "QR_CODE" 
+            ? [ Html5QrcodeSupportedFormats.QR_CODE ] 
+            : [ Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.EAN_8 ];
+
+        html5QrCode.start(
+            { facingMode: "environment" }, 
+            { fps: 10, qrbox: 250, formatsToSupported: formatsToSupport },
+            onScanSuccess
+        );
+    }
+
+    function onScanSuccess(decodedText) {
+        document.getElementById('scannedResult').innerText = decodedText;
+        
+        if (currentMode === "BARCODE") {
+            checkMatch(decodedText);
+        }
+    }
+
+    function checkMatch(scannedText) {
+        const userInput = document.getElementById('verifyInput').value;
+        const statusDiv = document.getElementById('comparisonStatus');
+        
+        if (!userInput) {
+            statusDiv.innerText = "";
+            return;
+        }
+
+        if (scannedText === userInput) {
+            statusDiv.innerText = "✓ Match Found!";
+            statusDiv.className = "status match";
+        } else {
+            statusDiv.innerText = "✗ No Match";
+            statusDiv.className = "status mismatch";
+        }
+    }
+
+    function switchMode(mode) {
+        currentMode = mode;
+        
+        // Update UI Tabs
+        document.getElementById('qrTab').classList.toggle('active', mode === 'QR_CODE');
+        document.getElementById('barTab').classList.toggle('active', mode === 'BARCODE');
+        
+        // Toggle Input Field
+        document.getElementById('barcodeVerification').style.display = (mode === 'BARCODE') ? 'block' : 'none';
+        
+        // Reset results
+        document.getElementById('scannedResult').innerText = "Waiting for scan...";
+        document.getElementById('comparisonStatus').innerText = "";
+
+        // Restart Scanner with new constraints
+        startScanner();
+    }
+
+    // Initialize on load
+    window.onload = startScanner;
+</script>
+
+</body>
+</html>
