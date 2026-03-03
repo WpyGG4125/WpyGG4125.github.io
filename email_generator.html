@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EPFL Spacecraft Team - Pro Email Suite</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 20px; }
+        .main-wrapper { display: flex; gap: 20px; max-width: 1400px; margin: 0 auto; align-items: flex-start; }
+        
+        /* Panels */
+        .panel { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); flex: 1; }
+        .panel-header { border-bottom: 2px solid #ff0000; margin-bottom: 20px; padding-bottom: 10px; }
+        h2 { margin: 0; font-size: 1.4rem; color: #ff0000; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* Form Elements */
+        .row { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; }
+        .col { flex: 1; min-width: 200px; }
+        label { font-weight: 700; font-size: 0.85rem; display: block; margin-bottom: 5px; color: #666; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; box-sizing: border-box; transition: border 0.2s; }
+        input:focus, textarea:focus { border-color: #ff0000; outline: none; }
+        
+        textarea { height: 220px; font-family: 'Courier New', Courier, monospace; line-height: 1.4; }
+        .preview-area { height: 280px; background-color: #fafafa; font-family: inherit; }
+
+        /* Buttons */
+        .btn { display: inline-block; padding: 10px 18px; font-weight: 600; text-align: center; border-radius: 6px; cursor: pointer; border: none; transition: 0.2s; font-size: 0.85rem; }
+        .btn-primary { background-color: #ff0000; color: white; }
+        .btn-primary:hover { background-color: #cc0000; }
+        .btn-outline { background-color: transparent; border: 1px solid #ff0000; color: #ff0000; }
+        .btn-outline:hover { background-color: #fff5f5; }
+
+        .copy-section { margin-bottom: 20px; }
+        .subject-display { font-weight: bold; background-color: #f8f9fa; border-left: 4px solid #ff0000; }
+        
+        .radio-group { display: flex; gap: 15px; padding-top: 5px; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
+        
+        .placeholder-hint { font-size: 0.75rem; color: #888; margin-top: 5px; font-style: italic; }
+
+        @media (max-width: 1000px) {
+            .main-wrapper { flex-direction: column; }
+            .panel { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+    
+    <div class="panel">
+        <div class="panel-header">
+            <h2>1. Template Manager</h2>
+        </div>
+        
+        <div class="row">
+            <div class="col">
+                <label>Target Category</label>
+                <select id="editCategory" onchange="loadTemplateToEditor()">
+                    </select>
+            </div>
+            <div class="col">
+                <label>Edit Language</label>
+                <select id="editLang" onchange="loadTemplateToEditor()">
+                    <option value="en">English Template</option>
+                    <option value="fr">French Template</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <label>Rename Category</label>
+                <input type="text" id="catNameInput" placeholder="New Category Name" oninput="renameCategory()">
+            </div>
+        </div>
+
+        <label>Subject Template</label>
+        <input type="text" id="editSubject" placeholder="e.g. Invitation: {{event}}">
+        
+        <label style="margin-top:15px;">Body Template</label>
+        <textarea id="editBody" placeholder="Use {{name}}, {{event}}, {{date}}, {{time}}, {{loc}}, {{link}}, {{salutation}}"></textarea>
+        <div class="placeholder-hint">Available: {{name}}, {{event}}, {{date}}, {{time}}, {{loc}}, {{link}}, {{salutation}}</div>
+
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <button class="btn btn-primary" onclick="saveTemplate()">Save & Update Generator</button>
+            <button class="btn btn-outline" onclick="addNewCategory()">+ Add New Category</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h2>2. Email Generator</h2>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <label>Audience</label>
+                <select id="genCategory" onchange="updateGenerator()"></select>
+            </div>
+            <div class="col">
+                <label>Language</label>
+                <select id="genLang" onchange="updateGenerator()">
+                    <option value="en">English</option>
+                    <option value="fr">Français</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <label>Recipient Name</label>
+                <input type="text" id="inputName" placeholder="e.g. Alex" oninput="updateGenerator()">
+            </div>
+            <div class="col">
+                <label>Event Name</label>
+                <input type="text" id="inputEvent" placeholder="e.g. Orbit Reveal" oninput="updateGenerator()">
+            </div>
+        </div>
+
+        <div class="row" id="genderRow">
+            <div class="col">
+                <label>Gender (For French Salutations)</label>
+                <div class="radio-group">
+                    <label style="font-weight:normal;"><input type="radio" name="gender" value="m" checked onclick="updateGenerator()"> Male</label>
+                    <label style="font-weight:normal;"><input type="radio" name="gender" value="f" onclick="updateGenerator()"> Female</label>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="copy-section">
+            <label>Subject Line</label>
+            <input type="text" id="outSubject" class="subject-display" readonly>
+            <button class="btn btn-primary" onclick="copyText('outSubject')">Copy Subject</button>
+        </div>
+
+        <div class="copy-section">
+            <label>Email Body</label>
+            <textarea id="outBody" class="preview-area" readonly></textarea>
+            <button class="btn btn-primary" onclick="copyText('outBody')">Copy Body</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Initial Data Store
+    let data = {
+        logistics: {
+            date: "11/05/2026",
+            timeEn: "18:30",
+            timeFr: "18h30",
+            location: "DLL Building, Main Hall, EPFL Campus",
+            link: "https://epflspacecraftteam.ch/"
+        },
+        templates: {
+            sponsors: {
+                name: "Sponsors",
+                en: { subject: "Invitation: {{event}}", body: "Dear {{salutation}} {{name}},\n\nOn behalf of the entire EPFL Spacecraft Team, I would like to express our deepest gratitude for your continued partnership.\n\nJoin us for {{event}} on {{date}} at {{time}}.\n\nLink: {{link}}" },
+                fr: { subject: "Invitation : {{event}}", body: "{{salutation}} {{name}},\n\nAu nom de toute l’EPFL Spacecraft Team, je tiens à vous exprimer notre profonde gratitude.\n\nRejoignez-nous pour {{event}} le {{date}} à {{time}}.\n\nInfos: {{link}}" }
+            },
+            academia: {
+                name: "Professors",
+                en: { subject: "Technical Briefing: Mission Milestones", body: "Dear Professor {{name}},\n\nThe EPFL Spacecraft Team is pleased to invite you to a technical overview for {{event}}.\n\nDate: {{date}} at {{time}}\nLocation: {{loc}}\n\n{{link}}" },
+                fr: { subject: "Séance technique : Jalons de la mission", body: "{{salutation}} {{name}},\n\nL’EPFL Spacecraft Team a le plaisir de vous inviter à une présentation technique pour {{event}}.\n\nDate : {{date}} à {{time}}\nLieu : {{loc}}\n\n{{link}}" }
+            }
+        }
+    };
+
+    // --- TEMPLATE MANAGER LOGIC ---
+
+    function init() {
+        refreshDropdowns();
+        loadTemplateToEditor();
+        updateGenerator();
+    }
+
+    function refreshDropdowns() {
+        const editSelect = document.getElementById('editCategory');
+        const genSelect = document.getElementById('genCategory');
+        const currentEditVal = editSelect.value;
+        const currentGenVal = genSelect.value;
+
+        editSelect.innerHTML = '';
+        genSelect.innerHTML = '';
+
+        Object.keys(data.templates).forEach(key => {
+            const opt = document.createElement('option');
+            opt.value = key;
+            opt.textContent = data.templates[key].name;
+            editSelect.appendChild(opt.cloneNode(true));
+            genSelect.appendChild(opt);
+        });
+
+        if (currentEditVal && data.templates[currentEditVal]) editSelect.value = currentEditVal;
+        if (currentGenVal && data.templates[currentGenVal]) genSelect.value = currentGenVal;
+    }
+
+    function loadTemplateToEditor() {
+        const key = document.getElementById('editCategory').value;
+        const lang = document.getElementById('editLang').value;
+        const template = data.templates[key];
+
+        document.getElementById('catNameInput').value = template.name;
+        document.getElementById('editSubject').value = template[lang].subject;
+        document.getElementById('editBody').value = template[lang].body;
+    }
+
+    function saveTemplate() {
+        const key = document.getElementById('editCategory').value;
+        const lang = document.getElementById('editLang').value;
+        
+        data.templates[key][lang].subject = document.getElementById('editSubject').value;
+        data.templates[key][lang].body = document.getElementById('editBody').value;
+        
+        updateGenerator();
+        alert("Template saved!");
+    }
+
+    function renameCategory() {
+        const key = document.getElementById('editCategory').value;
+        const newName = document.getElementById('catNameInput').value;
+        data.templates[key].name = newName;
+        refreshDropdowns();
+    }
+
+    function addNewCategory() {
+        const newId = "cat_" + Date.now();
+        data.templates[newId] = {
+            name: "New Category",
+            en: { subject: "New Subject", body: "Hello {{name}}, welcome to {{event}}" },
+            fr: { subject: "Sujet", body: "Bonjour {{name}}" }
+        };
+        refreshDropdowns();
+        document.getElementById('editCategory').value = newId;
+        loadTemplateToEditor();
+    }
+
+    // --- GENERATOR LOGIC ---
+
+    function updateGenerator() {
+        const key = document.getElementById('genCategory').value;
+        if (!key) return;
+        
+        const lang = document.getElementById('genLang').value;
+        const name = document.getElementById('inputName').value || "[Name]";
+        const eventName = document.getElementById('inputEvent').value || "[Event Name]";
+        const gender = document.querySelector('input[name="gender"]:checked').value;
+        
+        const template = data.templates[key][lang];
+        
+        // Handle Salutation logic
+        let salutation = "";
+        if (lang === 'fr') {
+            if (key.includes('sponsor')) salutation = (gender === 'm') ? "Monsieur" : "Madame";
+            else if (key.includes('academia')) salutation = (gender === 'm') ? "Cher Professeur" : "Chère Professeure";
+            else salutation = (gender === 'm') ? "Cher" : "Chère";
+        } else {
+            salutation = (gender === 'm') ? "Mr." : "Ms.";
+        }
+
+        const time = (lang === 'en') ? data.logistics.timeEn : data.logistics.timeFr;
+
+        // Replace placeholders
+        let bodyText = template.body
+            .replace(/{{name}}/g, name)
+            .replace(/{{event}}/g, eventName)
+            .replace(/{{date}}/g, data.logistics.date)
+            .replace(/{{time}}/g, time)
+            .replace(/{{loc}}/g, data.logistics.location)
+            .replace(/{{link}}/g, data.logistics.link)
+            .replace(/{{salutation}}/g, salutation);
+
+        const signature = (lang === 'fr') ? "\n\nCordialement,\nThe EPFL Spacecraft Team" : "\n\nBest regards,\nThe EPFL Spacecraft Team";
+        bodyText += signature;
+
+        document.getElementById('outSubject').value = template.subject.replace(/{{event}}/g, eventName);
+        document.getElementById('outBody').value = bodyText;
+
+        // Hide gender if not needed (optional refinement)
+        document.getElementById('genderRow').style.display = (lang === 'en' && !key.includes('sponsor')) ? 'none' : 'flex';
+    }
+
+    function copyText(id) {
+        const el = document.getElementById(id);
+        el.select();
+        document.execCommand('copy');
+    }
+
+    init();
+</script>
+
+</body>
+</html>
