@@ -6,39 +6,46 @@
     <title>EPFL Spacecraft Team - Pro Email Suite</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 20px; }
-        .main-wrapper { display: flex; gap: 20px; max-width: 1400px; margin: 0 auto; align-items: flex-start; }
+        .main-wrapper { display: flex; gap: 20px; max-width: 1500px; margin: 0 auto; align-items: flex-start; }
         
         /* Panels */
         .panel { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); flex: 1; }
         .panel-header { border-bottom: 2px solid #ff0000; margin-bottom: 20px; padding-bottom: 10px; }
-        h2 { margin: 0; font-size: 1.4rem; color: #ff0000; text-transform: uppercase; letter-spacing: 1px; }
+        h2 { margin: 0; font-size: 1.2rem; color: #ff0000; text-transform: uppercase; letter-spacing: 1px; }
         
         /* Form Elements */
-        .row { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; }
-        .col { flex: 1; min-width: 200px; }
-        label { font-weight: 700; font-size: 0.85rem; display: block; margin-bottom: 5px; color: #666; }
-        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; box-sizing: border-box; transition: border 0.2s; }
+        .row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+        .col { flex: 1; min-width: 180px; }
+        label { font-weight: 700; font-size: 0.8rem; display: block; margin-bottom: 4px; color: #666; text-transform: uppercase; }
+        input, select, textarea { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; box-sizing: border-box; transition: border 0.2s; }
         input:focus, textarea:focus { border-color: #ff0000; outline: none; }
         
-        textarea { height: 220px; font-family: 'Courier New', Courier, monospace; line-height: 1.4; }
-        .preview-area { height: 280px; background-color: #fafafa; font-family: inherit; }
+        textarea { height: 180px; font-family: 'Courier New', Courier, monospace; line-height: 1.4; }
+        .preview-area { height: 350px; background-color: #fafafa; font-family: inherit; font-size: 0.9rem; }
+        #inputSignature {height: 80px; resize: vertical; font-family: inherit;}
 
         /* Buttons */
         .btn { display: inline-block; padding: 10px 18px; font-weight: 600; text-align: center; border-radius: 6px; cursor: pointer; border: none; transition: 0.2s; font-size: 0.85rem; }
         .btn-primary { background-color: #ff0000; color: white; }
         .btn-primary:hover { background-color: #cc0000; }
         .btn-outline { background-color: transparent; border: 1px solid #ff0000; color: #ff0000; }
-        .btn-outline:hover { background-color: #fff5f5; }
+        .btn-info { background-color: #6c757d; color: white; padding: 4px 10px; font-size: 0.7rem; margin-top: 5px; }
 
         .copy-section { margin-bottom: 20px; }
-        .subject-display { font-weight: bold; background-color: #f8f9fa; border-left: 4px solid #ff0000; }
+        .subject-display { font-weight: bold; background-color: #f8f9fa; border-left: 4px solid #ff0000; margin-bottom: 5px;}
         
         .radio-group { display: flex; gap: 15px; padding-top: 5px; }
         hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
         
-        .placeholder-hint { font-size: 0.75rem; color: #888; margin-top: 5px; font-style: italic; }
+        .placeholder-hint { font-size: 0.75rem; color: #888; margin-top: 8px; font-style: italic; }
 
-        @media (max-width: 1000px) {
+        /* Modal Styles */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: white; margin: 10% auto; padding: 30px; border-radius: 12px; width: 500px; line-height: 1.6; position: relative; }
+        .close-modal { position: absolute; right: 20px; top: 15px; font-size: 24px; cursor: pointer; color: #999; }
+        .var-tag { color: #ff0000; font-family: monospace; font-weight: bold; background: #fff5f5; padding: 2px 4px; border-radius: 4px; }
+
+        @media (max-width: 1100px) {
             .main-wrapper { flex-direction: column; }
             .panel { width: 100%; }
         }
@@ -49,18 +56,15 @@
 <div class="main-wrapper">
     
     <div class="panel">
-        <div class="panel-header">
-            <h2>1. Template Manager</h2>
-        </div>
+        <div class="panel-header"><h2>1. Template Designer</h2></div>
         
         <div class="row">
             <div class="col">
-                <label>Target Category</label>
-                <select id="editCategory" onchange="loadTemplateToEditor()">
-                    </select>
+                <label>Category</label>
+                <select id="editCategory" onchange="loadTemplateToEditor()"></select>
             </div>
             <div class="col">
-                <label>Edit Language</label>
+                <label>Language</label>
                 <select id="editLang" onchange="loadTemplateToEditor()">
                     <option value="en">English Template</option>
                     <option value="fr">French Template</option>
@@ -70,37 +74,40 @@
 
         <div class="row">
             <div class="col">
-                <label>Rename Category</label>
-                <input type="text" id="catNameInput" placeholder="New Category Name" oninput="renameCategory()">
+                <label>Category Name</label>
+                <input type="text" id="catNameInput" oninput="renameCategory()">
             </div>
         </div>
 
-        <label>Subject Template</label>
+        <label>Subject Structure</label>
         <input type="text" id="editSubject" placeholder="e.g. Invitation: {{event}}">
         
-        <label style="margin-top:15px;">Body Template</label>
-        <textarea id="editBody" placeholder="Use {{name}}, {{event}}, {{date}}, {{time}}, {{loc}}, {{link}}, {{salutation}}"></textarea>
-        <div class="placeholder-hint">Available: {{name}}, {{event}}, {{date}}, {{time}}, {{loc}}, {{link}}, {{salutation}}</div>
+        <label style="margin-top:15px;">Body Structure</label>
+        <textarea id="editBody"></textarea>
+        
+        <div class="placeholder-hint">
+            Available: {{name}}, {{event}}, {{date}}, {{time}}, {{loc}}, {{link}}, {{salutation}}
+            <br>
+            <button class="btn btn-info" onclick="toggleModal(true)">How to use these?</button>
+        </div>
 
         <div style="margin-top: 20px; display: flex; gap: 10px;">
-            <button class="btn btn-primary" onclick="saveTemplate()">Save & Update Generator</button>
-            <button class="btn btn-outline" onclick="addNewCategory()">+ Add New Category</button>
+            <button class="btn btn-primary" onclick="saveTemplate()">Save Changes</button>
+            <button class="btn btn-outline" onclick="addNewCategory()">+ New Category</button>
         </div>
     </div>
 
     <div class="panel">
-        <div class="panel-header">
-            <h2>2. Email Generator</h2>
-        </div>
+        <div class="panel-header"><h2>2. Email Generator</h2></div>
 
         <div class="row">
             <div class="col">
-                <label>Audience</label>
+                <label>Target Audience</label>
                 <select id="genCategory" onchange="updateGenerator()"></select>
             </div>
             <div class="col">
                 <label>Language</label>
-                <select id="genLang" onchange="updateGenerator()">
+                <select id="genLang" onchange="handleLangChange()">
                     <option value="en">English</option>
                     <option value="fr">Français</option>
                 </select>
@@ -108,36 +115,52 @@
         </div>
 
         <div class="row">
+            <div class="col"><label>Recipient Name</label><input type="text" id="inputName" placeholder="Alex" oninput="updateGenerator()"></div>
+            <div class="col"><label>Event Name</label><input type="text" id="inputEvent" placeholder="Showcase 2026" oninput="updateGenerator()"></div>
+        </div>
+        <div class="row">
+            <div class="col"><label>Date</label><input type="text" id="inputDate" value="11/05/2026" oninput="updateGenerator()"></div>
+            <div class="col"><label>Time</label><input type="text" id="inputTime" value="18:30" oninput="updateGenerator()"></div>
+        </div>
+        <div class="row">
+            <div class="col"><label>Location</label><input type="text" id="inputLoc" value="DLL Building, EPFL" oninput="updateGenerator()"></div>
+            <div class="col"><label>Link</label><input type="text" id="inputLink" value="https://epflspacecraftteam.ch/" oninput="updateGenerator()"></div>
+        </div>
+        <div class="row">
             <div class="col">
-                <label>Recipient Name</label>
-                <input type="text" id="inputName" placeholder="e.g. Alex" oninput="updateGenerator()">
+                <label>Custom Salutation (Optional)</label>
+                <input type="text" id="inputSalutation" placeholder="Overrides automatic gender" oninput="updateGenerator()">
             </div>
-            <div class="col">
-                <label>Event Name</label>
-                <input type="text" id="inputEvent" placeholder="e.g. Orbit Reveal" oninput="updateGenerator()">
+            <div class="col" id="genderRow">
+                <label>Gender (If Salutation Empty)</label>
+                <div class="radio-group">
+                    <label style="font-weight:normal;"><input type="radio" name="gender" value="m" checked onclick="updateGenerator()"> M</label>
+                    <label style="font-weight:normal;"><input type="radio" name="gender" value="f" onclick="updateGenerator()"> F</label>
+                </div>
             </div>
         </div>
 
-        <div class="row" id="genderRow">
+        <div class="row">
             <div class="col">
-                <label>Gender (For French Salutations)</label>
-                <div class="radio-group">
-                    <label style="font-weight:normal;"><input type="radio" name="gender" value="m" checked onclick="updateGenerator()"> Male</label>
-                    <label style="font-weight:normal;"><input type="radio" name="gender" value="f" onclick="updateGenerator()"> Female</label>
-                </div>
+                <label>Goodbye (Closing)</label>
+                <input type="text" id="inputGoodbye" value="Best regards," oninput="updateGenerator()">
+            </div>
+            <div class="col">
+                <label>Signature</label>
+                <textarea id="inputSignature" style="height: 80px;" oninput="updateGenerator()">The EPFL Spacecraft Team</textarea>
             </div>
         </div>
 
         <hr>
 
         <div class="copy-section">
-            <label>Subject Line</label>
+            <label>Final Subject Line</label>
             <input type="text" id="outSubject" class="subject-display" readonly>
             <button class="btn btn-primary" onclick="copyText('outSubject')">Copy Subject</button>
         </div>
 
         <div class="copy-section">
-            <label>Email Body</label>
+            <label>Final Email Body</label>
             <textarea id="outBody" class="preview-area" readonly></textarea>
             <button class="btn btn-primary" onclick="copyText('outBody')">Copy Body</button>
         </div>
@@ -145,31 +168,39 @@
 
 </div>
 
+<div id="helpModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="toggleModal(false)">&times;</span>
+        <h3 style="color:#ff0000; margin-top:0;">Variable Guide</h3>
+        <p>Use these in your templates to automatically pull data from the generator inputs:</p>
+        <ul style="padding-left: 20px;">
+            <li><span class="var-tag">{{name}}</span>: The recipient's name.</li>
+            <li><span class="var-tag">{{event}}</span>: The title of the event/meeting.</li>
+            <li><span class="var-tag">{{date}}</span>: The date of the event.</li>
+            <li><span class="var-tag">{{time}}</span>: The start time.</li>
+            <li><span class="var-tag">{{loc}}</span>: The physical or virtual location.</li>
+            <li><span class="var-tag">{{link}}</span>: The URL for registration or more info.</li>
+            <li><span class="var-tag">{{salutation}}</span>: Automatically calculates "Cher/Chère" or "Mr/Ms" based on gender, or uses your custom input.</li>
+        </ul>
+        <p><small><em>Note: Placeholders are case-sensitive. Use exactly as shown.</em></small></p>
+    </div>
+</div>
+
 <script>
-    // Initial Data Store
     let data = {
-        logistics: {
-            date: "11/05/2026",
-            timeEn: "18:30",
-            timeFr: "18h30",
-            location: "DLL Building, Main Hall, EPFL Campus",
-            link: "https://epflspacecraftteam.ch/"
-        },
         templates: {
             sponsors: {
-                name: "Sponsors",
-                en: { subject: "Invitation: {{event}}", body: "Dear {{salutation}} {{name}},\n\nOn behalf of the entire EPFL Spacecraft Team, I would like to express our deepest gratitude for your continued partnership.\n\nJoin us for {{event}} on {{date}} at {{time}}.\n\nLink: {{link}}" },
-                fr: { subject: "Invitation : {{event}}", body: "{{salutation}} {{name}},\n\nAu nom de toute l’EPFL Spacecraft Team, je tiens à vous exprimer notre profonde gratitude.\n\nRejoignez-nous pour {{event}} le {{date}} à {{time}}.\n\nInfos: {{link}}" }
+                name: "1. Sponsors",
+                en: { subject: "Invitation: {{event}}", body: "Dear {{salutation}} {{name}},\n\nOn behalf of the EPFL Spacecraft Team, thank you for your support. We invite you to {{event}} on {{date}} at {{time}} in {{loc}}.\n\nLink: {{link}}" },
+                fr: { subject: "Invitation : {{event}}", body: "{{salutation}} {{name}},\n\nAu nom de l’EPFL Spacecraft Team, merci de votre soutien. Nous vous invitons à {{event}} le {{date}} à {{time}} (Lieu : {{loc}}).\n\nLien : {{link}}" }
             },
             academia: {
-                name: "Professors",
-                en: { subject: "Technical Briefing: Mission Milestones", body: "Dear Professor {{name}},\n\nThe EPFL Spacecraft Team is pleased to invite you to a technical overview for {{event}}.\n\nDate: {{date}} at {{time}}\nLocation: {{loc}}\n\n{{link}}" },
-                fr: { subject: "Séance technique : Jalons de la mission", body: "{{salutation}} {{name}},\n\nL’EPFL Spacecraft Team a le plaisir de vous inviter à une présentation technique pour {{event}}.\n\nDate : {{date}} à {{time}}\nLieu : {{loc}}\n\n{{link}}" }
+                name: "2. Academia",
+                en: { subject: "Technical Briefing: {{event}}", body: "Dear Professor {{name}},\n\nJoin us for a briefing on {{event}}.\nDate: {{date}}\nTime: {{time}}\nLocation: {{loc}}\n\nMore: {{link}}" },
+                fr: { subject: "Séance technique : {{event}}", body: "{{salutation}} {{name}},\n\nVenez assister à notre séance sur {{event}}.\nDate : {{date}}\nHeure : {{time}}\nLieu : {{loc}}\n\nInfos : {{link}}" }
             }
         }
     };
-
-    // --- TEMPLATE MANAGER LOGIC ---
 
     function init() {
         refreshDropdowns();
@@ -177,110 +208,111 @@
         updateGenerator();
     }
 
+    function toggleModal(show) {
+        document.getElementById('helpModal').style.display = show ? 'block' : 'none';
+    }
+
     function refreshDropdowns() {
         const editSelect = document.getElementById('editCategory');
         const genSelect = document.getElementById('genCategory');
-        const currentEditVal = editSelect.value;
-        const currentGenVal = genSelect.value;
-
-        editSelect.innerHTML = '';
-        genSelect.innerHTML = '';
-
-        Object.keys(data.templates).forEach(key => {
-            const opt = document.createElement('option');
-            opt.value = key;
-            opt.textContent = data.templates[key].name;
-            editSelect.appendChild(opt.cloneNode(true));
-            genSelect.appendChild(opt);
+        const curE = editSelect.value;
+        const curG = genSelect.value;
+        editSelect.innerHTML = genSelect.innerHTML = '';
+        Object.keys(data.templates).forEach(k => {
+            const opt = document.createElement('option'); opt.value = k; opt.textContent = data.templates[k].name;
+            editSelect.appendChild(opt.cloneNode(true)); genSelect.appendChild(opt);
         });
-
-        if (currentEditVal && data.templates[currentEditVal]) editSelect.value = currentEditVal;
-        if (currentGenVal && data.templates[currentGenVal]) genSelect.value = currentGenVal;
+        if (curE && data.templates[curE]) editSelect.value = curE;
+        if (curG && data.templates[curG]) genSelect.value = curG;
     }
 
     function loadTemplateToEditor() {
         const key = document.getElementById('editCategory').value;
         const lang = document.getElementById('editLang').value;
-        const template = data.templates[key];
-
-        document.getElementById('catNameInput').value = template.name;
-        document.getElementById('editSubject').value = template[lang].subject;
-        document.getElementById('editBody').value = template[lang].body;
+        const t = data.templates[key];
+        document.getElementById('catNameInput').value = t.name;
+        document.getElementById('editSubject').value = t[lang].subject;
+        document.getElementById('editBody').value = t[lang].body;
     }
 
     function saveTemplate() {
         const key = document.getElementById('editCategory').value;
         const lang = document.getElementById('editLang').value;
-        
         data.templates[key][lang].subject = document.getElementById('editSubject').value;
         data.templates[key][lang].body = document.getElementById('editBody').value;
-        
         updateGenerator();
-        alert("Template saved!");
+        alert("Saved!");
     }
 
     function renameCategory() {
         const key = document.getElementById('editCategory').value;
-        const newName = document.getElementById('catNameInput').value;
-        data.templates[key].name = newName;
+        data.templates[key].name = document.getElementById('catNameInput').value;
         refreshDropdowns();
     }
 
     function addNewCategory() {
-        const newId = "cat_" + Date.now();
-        data.templates[newId] = {
-            name: "New Category",
-            en: { subject: "New Subject", body: "Hello {{name}}, welcome to {{event}}" },
-            fr: { subject: "Sujet", body: "Bonjour {{name}}" }
-        };
-        refreshDropdowns();
-        document.getElementById('editCategory').value = newId;
-        loadTemplateToEditor();
+        const id = "cat_" + Date.now();
+        data.templates[id] = { name: "New Category", en: { subject: "Subj", body: "Body" }, fr: { subject: "Sujet", body: "Corps" } };
+        refreshDropdowns(); document.getElementById('editCategory').value = id; loadTemplateToEditor();
     }
 
-    // --- GENERATOR LOGIC ---
+    // New helper to handle language switching for default goodbye text
+    function handleLangChange() {
+        const lang = document.getElementById('genLang').value;
+        const goodbyeInput = document.getElementById('inputGoodbye');
+        
+        if (lang === 'fr') {
+            goodbyeInput.value = "Cordialement,";
+        } else {
+            goodbyeInput.value = "Best regards,";
+        }
+        updateGenerator();
+    }
 
     function updateGenerator() {
         const key = document.getElementById('genCategory').value;
-        if (!key) return;
-        
         const lang = document.getElementById('genLang').value;
-        const name = document.getElementById('inputName').value || "[Name]";
-        const eventName = document.getElementById('inputEvent').value || "[Event Name]";
+        if (!key) return;
+
+        const inputs = {
+            name: document.getElementById('inputName').value || "[Name]",
+            event: document.getElementById('inputEvent').value || "[Event]",
+            date: document.getElementById('inputDate').value,
+            time: document.getElementById('inputTime').value,
+            loc: document.getElementById('inputLoc').value,
+            link: document.getElementById('inputLink').value,
+            salutation: document.getElementById('inputSalutation').value,
+            goodbye: document.getElementById('inputGoodbye').value,
+            signature: document.getElementById('inputSignature').value
+        };
+
         const gender = document.querySelector('input[name="gender"]:checked').value;
-        
         const template = data.templates[key][lang];
-        
-        // Handle Salutation logic
-        let salutation = "";
-        if (lang === 'fr') {
-            if (key.includes('sponsor')) salutation = (gender === 'm') ? "Monsieur" : "Madame";
-            else if (key.includes('academia')) salutation = (gender === 'm') ? "Cher Professeur" : "Chère Professeure";
-            else salutation = (gender === 'm') ? "Cher" : "Chère";
-        } else {
-            salutation = (gender === 'm') ? "Mr." : "Ms.";
+
+        if (!inputs.salutation) {
+            if (lang === 'fr') {
+                if (key.includes('academia')) inputs.salutation = (gender === 'm' ? "Cher Professeur" : "Chère Professeure");
+                else if (key.includes('sponsor')) inputs.salutation = (gender === 'm' ? "Monsieur" : "Madame");
+                else inputs.salutation = (gender === 'm' ? "Cher" : "Chère");
+            } else {
+                inputs.salutation = (gender === 'm' ? "Mr." : "Ms.");
+            }
         }
 
-        const time = (lang === 'en') ? data.logistics.timeEn : data.logistics.timeFr;
+        let body = template.body;
+        let subject = template.subject;
 
-        // Replace placeholders
-        let bodyText = template.body
-            .replace(/{{name}}/g, name)
-            .replace(/{{event}}/g, eventName)
-            .replace(/{{date}}/g, data.logistics.date)
-            .replace(/{{time}}/g, time)
-            .replace(/{{loc}}/g, data.logistics.location)
-            .replace(/{{link}}/g, data.logistics.link)
-            .replace(/{{salutation}}/g, salutation);
+        Object.keys(inputs).forEach(k => {
+            const regex = new RegExp(`{{${k}}}`, 'g');
+            body = body.replace(regex, inputs[k]);
+            subject = subject.replace(regex, inputs[k]);
+        });
+        
+        // Use custom inputs for the end of the email
+        const finalClosing = "\n\n" + inputs.goodbye + "\n" + inputs.signature;
 
-        const signature = (lang === 'fr') ? "\n\nCordialement,\nThe EPFL Spacecraft Team" : "\n\nBest regards,\nThe EPFL Spacecraft Team";
-        bodyText += signature;
-
-        document.getElementById('outSubject').value = template.subject.replace(/{{event}}/g, eventName);
-        document.getElementById('outBody').value = bodyText;
-
-        // Hide gender if not needed (optional refinement)
-        document.getElementById('genderRow').style.display = (lang === 'en' && !key.includes('sponsor')) ? 'none' : 'flex';
+        document.getElementById('outSubject').value = subject;
+        document.getElementById('outBody').value = body + finalClosing;
     }
 
     function copyText(id) {
@@ -291,6 +323,5 @@
 
     init();
 </script>
-
 </body>
 </html>
