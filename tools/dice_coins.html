@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>3D Tabletop Simulator</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #87CEEB; }
+        #ui { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(255,255,255,0.95); padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); width: 250px; }
+        label { display: block; font-size: 11px; font-weight: bold; text-transform: uppercase; color: #444; margin-bottom: 4px; }
+        select, input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 15px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #27ae60; border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; box-shadow: 0 4px 0 #1e8449; }
+        button:disabled { background: #95a5a6; box-shadow: 0 4px 0 #7f8c8d; cursor: not-allowed; }
+        #result-display { position: absolute; bottom: 50px; width: 100%; text-align: center; font-size: 50px; font-weight: 900; pointer-events: none; text-shadow: 2px 2px 10px rgba(0,0,0,0.2); transition: all 0.3s; }
+        .win { color: #27ae60; transform: scale(1.2); } .lose { color: #e74c3c; }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <label>Game Mode</label>
+    <select id="mode" onchange="toggleInputs()">
+        <option value="dice">Dice (D6)</option>
+        <option value="coin">Coins</option>
+    </select>
+    <div id="dice-options">
+        <label>Quantity</label>
+        <input type="number" id="diceCount" value="3" min="1" max="12">
+    </div>
+    <div id="coin-options" style="display:none;">
+        <label>Quantity</label>
+        <input type="number" id="coinCount" value="3" min="1" max="12">
+    </div>
+    <label>Win Condition (Sum/Heads ≥ )</label>
+    <input type="number" id="winThreshold" value="10">
+    <button id="rollBtn" onclick="roll()">THROW!</button>
+</div>
+<div id="result-display"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
+
+<script>
+let scene, camera, renderer, world, objects = [];
+let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const loader = new THREE.TextureLoader();
+
+// Textures
+const headsTex = loader.load('/resources/textures/coin_heads.png'); // Gold Coin Face
+const tailsTex = loader.load('/resources/textures/coin_tails.png'); // Silver/Alt Face
+
+function playHitSound(vol) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(100 + Math.random() * 200, audioCtx.currentTime);
+    gain.gain.setValueAtTime(Math.min(vol * 0.2, 0.5), audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+}
+
+function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xaaccff);
+
+    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 18, 15);
+    camera.lookAt(0, 0, 0);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    world = new CANNON.World();
+    world.gravity.set(0, -35, 0);
+    world.broadphase = new CANNON.NaiveBroadphase();
+    world.solver.iterations = 10;
+
+    // Table with Walls
+    const tableSize = 10;
+    const tableGeo = new THREE.BoxGeometry(tableSize * 2, 1, tableSize * 2);
+    const tableMat = new THREE.MeshStandardMaterial({ color: 0x6d4c41 });
+    const table = new THREE.Mesh(tableGeo, tableMat);
+    table.receiveShadow = true; table.position.y = -0.5;
+    scene.add(table);
+
+    const groundBody = new CANNON.Body({ mass: 0, shape: new CANNON.Box(new CANNON.Vec3(tableSize, 0.5, tableSize)) });
+    world.addBody(groundBody);
+
+    // INVISIBLE BOUNDARY WALLS
+    const wallHeight = 10;
+    const wallShapeX = new CANNON.Box(new CANNON.Vec3(tableSize, wallHeight, 0.5));
+    const wallShapeZ = new CANNON.Box(new CANNON.Vec3(0.5, wallHeight, tableSize));
+
+    const walls = [
+        {pos: [0, wallHeight/2, tableSize]}, {pos: [0, wallHeight/2, -tableSize]},
+        {pos: [tableSize, wallHeight/2, 0]}, {pos: [-tableSize, wallHeight/2, 0]}
+    ];
+
+    walls.forEach((w, i) => {
+        const body = new CANNON.Body({ mass: 0, shape: i < 2 ? wallShapeX : wallShapeZ });
+        body.position.set(...w.pos);
+        world.addBody(body);
+    });
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+    const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+    sun.position.set(10, 20, 10); sun.castShadow = true;
+    sun.shadow.camera.left = sun.shadow.camera.bottom = -15;
+    sun.shadow.camera.right = sun.shadow.camera.top = 15;
+    scene.add(sun);
+
+    animate();
+}
+
+function createDiceMaterials() {
+    return [1,2,3,4,5,6].map(num => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128; canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0,0,128,128);
+        ctx.strokeStyle = '#ccc'; ctx.lineWidth = 10; ctx.strokeRect(0,0,128,128);
+        ctx.fillStyle = '#000'; ctx.font = 'bold 70px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(num, 64, 64);
+        return new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(canvas) });
+    });
+}
+
+function spawnObject(type) {
+    let mesh, body;
+    if (type === 'dice') {
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 1.4), createDiceMaterials());
+        body = new CANNON.Body({ mass: 1, shape: new CANNON.Box(new CANNON.Vec3(0.7, 0.7, 0.7)) });
+    } else {
+        const mats = [
+            new THREE.MeshStandardMaterial({color: 0xdaa520}),
+            new THREE.MeshStandardMaterial({map: headsTex}),
+            new THREE.MeshStandardMaterial({map: tailsTex})
+        ];
+        mesh = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.2, 32), mats);
+        body = new CANNON.Body({ mass: 0.8 });
+        const shape = new CANNON.Cylinder(1.1, 1.1, 0.2, 32);
+        const q = new CANNON.Quaternion(); q.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI / 2);
+        body.addShape(shape, new CANNON.Vec3(), q);
+    }
+
+    mesh.castShadow = true;
+    body.position.set(0, 10, 0); // Start from center height
+    body.angularVelocity.set(Math.random()*20, Math.random()*20, Math.random()*20);
+    body.velocity.set(Math.random()*4-2, -5, Math.random()*4-2);
+    body.addEventListener("collide", (e) => playHitSound(e.contact.getImpactVelocityAlongNormal() / 10));
+
+    scene.add(mesh);
+    world.addBody(body);
+    return { mesh, body, type };
+}
+
+async function roll() {
+    const btn = document.getElementById('rollBtn');
+    btn.disabled = true;
+
+    // 1. Cleanup old objects
+    objects.forEach(obj => {
+        scene.remove(obj.mesh);
+        world.removeBody(obj.body);
+        obj.mesh.geometry.dispose();
+        if (Array.isArray(obj.mesh.material)) obj.mesh.material.forEach(m => m.dispose());
+        else obj.mesh.material.dispose();
+    });
+    objects = [];
+    document.getElementById('result-display').innerHTML = "Throwing...";
+    scene.background = new THREE.Color(0xaaccff);
+
+    const mode = document.getElementById('mode').value;
+    const count = mode === 'dice' ? document.getElementById('diceCount').value : document.getElementById('coinCount').value;
+
+    // 2. Sequential Spawn
+    for (let i = 0; i < count; i++) {
+        objects.push(spawnObject(mode));
+        await new Promise(r => setTimeout(r, 150)); // Delay between throws
+    }
+
+    // 3. Wait for settle and calculate
+    setTimeout(() => {
+        calculateResult();
+        btn.disabled = false;
+    }, 3000);
+}
+
+function calculateResult() {
+    let total = 0;
+    const worldUp = new THREE.Vector3(0, 1, 0);
+
+    objects.forEach(obj => {
+        if (obj.type === 'dice') {
+            const normals = [
+                new THREE.Vector3(1, 0, 0), new THREE.Vector3(-1, 0, 0),
+                new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -1, 0),
+                new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, -1)
+            ];
+            const values = [1, 2, 3, 4, 5, 6];
+            let maxDot = -1, val = 0;
+            normals.forEach((n, i) => {
+                const dot = n.clone().applyQuaternion(obj.mesh.quaternion).dot(worldUp);
+                if (dot > maxDot) { maxDot = dot; val = values[i]; }
+            });
+            total += val;
+        } else {
+            const up = new THREE.Vector3(0, 1, 0).applyQuaternion(obj.mesh.quaternion);
+            total += (up.dot(worldUp) > 0 ? 1 : 0);
+        }
+    });
+
+    const thresh = parseInt(document.getElementById('winThreshold').value);
+    const win = total >= thresh;
+    const display = document.getElementById('result-display');
+    display.innerHTML = (document.getElementById('mode').value === 'dice' ? "SUM: " : "HEADS: ") + total;
+    display.className = win ? 'win' : 'lose';
+    scene.background = new THREE.Color(win ? 0xd4edda : 0xf8d7da);
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    world.step(1/60);
+    objects.forEach(obj => {
+        obj.mesh.position.copy(obj.body.position);
+        obj.mesh.quaternion.copy(obj.body.quaternion);
+    });
+    renderer.render(scene, camera);
+}
+
+function toggleInputs() {
+    const mode = document.getElementById('mode').value;
+    document.getElementById('dice-options').style.display = mode === 'dice' ? 'block' : 'none';
+    document.getElementById('coin-options').style.display = mode === 'coin' ? 'block' : 'none';
+}
+
+init();
+</script>
+</body>
+</html>
