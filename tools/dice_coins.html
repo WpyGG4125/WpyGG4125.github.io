@@ -46,7 +46,8 @@ const loader = new THREE.TextureLoader();
 
 // Textures
 const headsTex = loader.load('/resources/textures/coin_heads.png'); // Gold Coin Face
-const tailsTex = loader.load('/resources/textures/coin_tails.png'); // Silver/Alt Face
+const tailsTex = loader.load('/resources/textures/coin_tails.png'); // Coin tail
+const tableTex = loader.load('/resources/textures/table_wood.jpg');
 
 function playHitSound(vol) {
     if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -81,7 +82,10 @@ function init() {
     // Table with Walls
     const tableSize = 10;
     const tableGeo = new THREE.BoxGeometry(tableSize * 2, 1, tableSize * 2);
-    const tableMat = new THREE.MeshStandardMaterial({ color: 0x6d4c41 });
+    const tableMat = new THREE.MeshStandardMaterial({ 
+        // color: 0x6d4c41,
+        map: tableTex
+    });
     const table = new THREE.Mesh(tableGeo, tableMat);
     table.receiveShadow = true; table.position.y = -0.5;
     scene.add(table);
