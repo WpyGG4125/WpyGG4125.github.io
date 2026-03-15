@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rocket Race: Join the Mission</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #05070a; color: white; min-height: 100vh; display: flex; align-items: center; }
+        .card { background: #1a1d23; border: 1px solid #fe9100; border-radius: 15px; }
+        .btn-orange { background-color: #fe9100; color: white; font-weight: bold; }
+        .btn-orange:hover { background-color: #bb7212; color: white; font-weight: bold; }
+        .btn-orange:disabled { background-color: #7a4600; }
+        .form-control { background: #0b0d17; border: 1px solid #444; color: white; }
+        .form-control:focus { background: #0b0d17; color: white; border-color: #fe9100; box-shadow: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-5 text-center">
+            <h1 class="display-5 fw-bold mb-4" style="color: #fe9100;">Pilot Check-In 🚀</h1>
+            <div class="card p-4 shadow">
+                <div id="checkinForm">
+                    <p class="mb-4 text-white">Enter your callsign to join the next deep space race!</p>
+                    <input type="text" id="pilotName" class="form-control form-control-lg mb-3" placeholder="Callsign / Name">
+                    <button id="submitBtn" class="btn btn-orange btn-lg w-100">Ignite Engines</button>
+                </div>
+                <div id="successArea" class="d-none">
+                    <h2 class="text-success mb-3">System Ready ✓</h2>
+                    <p class="text-white">You are on the manifest. Watch the main screen for launch!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBdPDS5r4aoKcqBzJdI-cbCTCPY4VBfs0g",
+        authDomain: "github-page-b27e5.firebaseapp.com",
+        databaseURL: "https://github-page-b27e5-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "github-page-b27e5",
+        storageBucket: "github-page-b27e5.firebasestorage.app",
+        messagingSenderId: "996810085917",
+        appId: "1:996810085917:web:7bc9f4ec804863f708d8f4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const checkinRef = ref(db, 'marble_racing');
+
+    const nameInput = document.getElementById('pilotName');
+    const submitBtn = document.getElementById('submitBtn');
+    const formArea = document.getElementById('checkinForm');
+    const successArea = document.getElementById('successArea');
+
+    // Check if user already joined
+    if (localStorage.getItem('eventPilotCheck')) {
+        showSuccess();
+    }
+
+    submitBtn.addEventListener('click', () => {
+        const name = nameInput.value.trim();
+        if (name) {
+            push(checkinRef, { 
+                name: name, 
+                timestamp: Date.now() 
+            }).then(() => {
+                localStorage.setItem('eventPilotCheck', name);
+                showSuccess();
+            });
+        }
+    });
+
+    function showSuccess() {
+        formArea.classList.add('d-none');
+        successArea.classList.remove('d-none');
+    }
+</script>
+</body>
+</html>
