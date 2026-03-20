@@ -22,6 +22,8 @@
         .style-group.org { border-left-color: #6c757d; }
         h6 { font-weight: bold; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; color: #495057; }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body class="bg-light">
 
@@ -267,31 +269,50 @@
 
     // --- Bulk Export ---
 
-    document.getElementById('downloadBtn').onclick = () => {
-        userData.forEach((user, index) => {
+    document.getElementById('downloadBtn').onclick = async function() {
+        const zip = new JSZip();
+        const btn = this;
+        const originalText = btn.innerText;
+        
+        btn.disabled = true;
+        btn.innerText = "Processing...";
+
+        // Generate each tag and add to ZIP
+        for (let i = 0; i < userData.length; i++) {
+            const user = userData[i];
             const name = (user.Name || user.name || "Guest").toUpperCase();
             const org = (user.Organisation || user.organisation || user.Org || "").toUpperCase();
             
+            // Draw to hidden state
             ctx.drawImage(templateImg, 0, 0);
             
-            // Name
+            // Name styling
             ctx.fillStyle = document.getElementById('nameColor').value;
             ctx.font = `${document.getElementById('nameSize').value}px ${document.getElementById('nameFont').value}`;
             ctx.textAlign = "center";
             ctx.fillText(name, elements.name.x, elements.name.y);
             
-            // Org
+            // Org styling
             ctx.fillStyle = document.getElementById('orgColor').value;
             ctx.font = `${document.getElementById('orgSize').value}px ${document.getElementById('orgFont').value}`;
             ctx.fillText(org, elements.org.x, elements.org.y);
 
-            const link = document.createElement('a');
-            link.download = `tag_${name.replace(/\s+/g, '_')}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        });
-        // Reset preview to first user
-        updatePreview();
+            // Convert canvas to blob and add to zip
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            zip.file(`tag_${name.replace(/\s+/g, '_')}_${i}.png`, blob);
+        }
+
+        // Generate ZIP file and trigger download
+        const content = await zip.generateAsync({ type: "blob" });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(content);
+        link.download = "nametags_bulk.zip";
+        link.click();
+
+        // Reset UI
+        btn.disabled = false;
+        btn.innerText = originalText;
+        updatePreview(); // Return canvas to preview state
     };
 
 </script>
