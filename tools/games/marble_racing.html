@@ -100,7 +100,7 @@
     engine.positionIterations = 10;
     engine.velocityIterations = 10;
     const world = engine.world;
-    const width = 600, worldHeight = 4000, viewHeight = 800;
+    const width = 600, worldHeight = 4500, viewHeight = 800;
     const obstacleColor = '#ADD8E6';
 
     const render = Render.create({
@@ -112,7 +112,8 @@
     Render.run(render);
     Runner.run(Runner.create(), engine);
 
-    let rockets = [], winners = [], particles = [], wheels = [], raceInProgress = false, cameraY = 0, cameraLocked = false;
+    let rockets = [], winners = [], particles = [], wheels = [], raceInProgress = false, 
+        cameraY = 0, cameraLocked = false, flippers = [], slidingDoors = [];
 
     function createWheel(x, y) {
         const options = { isStatic: true, render: { fillStyle: obstacleColor } };
@@ -140,12 +141,14 @@
             Bodies.rectangle(width/2, worldHeight - 30, width, 60, { isStatic: true, isSensor: true, label: 'finishLine', render: { fillStyle: '#2ecc71', opacity: 0.2 } })
         ]);
 
-        for (let r = 0; r < 13; r++) for (let c = 0; c < 11; c++) {
+        // top pins
+        for (let r = 0; r < 10; r++) for (let c = 0; c < 11; c++) {
             const x = (c * 50) + (r % 2 === 0 ? 25 : 50);
             if (x < width - 25) Composite.add(world, Bodies.circle(x + 13, 150 + (r * 60), 5, dotOptions));
         }
 
-        for (let y = 1000; y < 3200; y += 220) {
+        // wheels and ramps
+        for (let y = 850; y < 1730; y += 220) {
             createWheel(width / 2 + (Math.random() * 100 - 50), y);
             Composite.add(world, [
                 Bodies.rectangle(110, y + 110, 250, 15, { isStatic: true, angle: 0.2, render: { fillStyle: obstacleColor } }),
@@ -153,14 +156,45 @@
             ]);
         }
 
-        for (let r = 0; r < 13; r++) for (let c = 0; c < 11; c++) {
+        for (let y = 1900; y < 3700; y += 450) {
+            // 1. Sliding "Air-Lock" Doors
+            const door = Bodies.rectangle(width / 2, y, 200, 20, { isStatic: true, render: { fillStyle: '#ff4757' } });
+            slidingDoors.push({ body: door, startX: width / 2, range: 150, speed: 0.002 });
+            Composite.add(world, door);
+
+            // 2. Pinball Flippers (Left and Right)
+            const flipL = Bodies.rectangle(120, y + 150, 180, 20, { isStatic: true, chamfer: { radius: 10 }, render: { fillStyle: '#fe9100' } });
+            const flipR = Bodies.rectangle(width - 120, y + 150, 180, 20, { isStatic: true, chamfer: { radius: 10 }, render: { fillStyle: '#fe9100' } });
+            flippers.push({ body: flipL, angle: 0.5, side: 1 }, { body: flipR, angle: -0.5, side: -1 });
+            Composite.add(world, [flipL, flipR]);
+
+            // 3. Rotating Spinner
+            createWheel(width / 2, y + 250);
+
+            // 4. Bouncy Bumpers
+            for(let i=0; i<3; i++) {
+                Composite.add(world, Bodies.circle(150 + (i*150), y + 400, 20, { isStatic: true, restitution: 1.5, render: { fillStyle: '#00d2d3' } }));
+            }
+        }
+
+        // bottom pins
+        for (let r = 0; r < 10; r++) for (let c = 0; c < 11; c++) {
             const x = (c * 50) + (r % 2 === 0 ? 25 : 50);
-            if (x < width - 25) Composite.add(world, Bodies.circle(x + 13, 3300 + (r * 60), 5, dotOptions));
+            if (x < width - 25) Composite.add(world, Bodies.circle(x + 13, 3800 + (r * 60), 5, dotOptions));
         }
     }
 
     Events.on(engine, 'beforeUpdate', () => {
+        const time = Date.now();
         wheels.forEach(w => w.bodies.forEach(b => Body.setAngle(b, b.angle + w.speed)));
+        slidingDoors.forEach(d => {
+            const moveX = d.startX + Math.sin(time * d.speed) * d.range;
+            Body.setPosition(d.body, { x: moveX, y: d.body.position.y });
+        });
+        flippers.forEach(f => {
+            const osc = Math.sin(time * 0.01) * 0.8; 
+            Body.setAngle(f.body, f.angle + (osc * f.side));
+        });
         if (raceInProgress && !cameraLocked) {
             let lowY = 0; rockets.forEach(r => { if (r.position.y > lowY) lowY = r.position.y; });
             if (lowY > viewHeight / 2) {

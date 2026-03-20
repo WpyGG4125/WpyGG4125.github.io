@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Name Tag Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        #previewContainer {
+            position: relative;
+            display: inline-block;
+            border: 2px solid #dee2e6;
+            background-color: #f8f9fa;
+            max-width: 100%;
+            overflow: hidden;
+            user-select: none;
+        }
+        canvas { max-width: 100%; height: auto; display: block; }
+        .control-panel { background: #f1f3f5; padding: 20px; border-radius: 8px; height: fit-content; }
+        .style-group { background: #fff; padding: 15px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #007bff; }
+        .style-group.org { border-left-color: #6c757d; }
+        h6 { font-weight: bold; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; color: #495057; }
+    </style>
+</head>
+<body class="bg-light">
+
+<div class="container py-5">
+    <h2 class="mb-4">Bulk Name Tag Generator</h2>
+    
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="control-panel shadow-sm">
+                <h5>1. Upload Assets</h5>
+                <div class="mb-3">
+                    <label class="form-label">Template Image</label>
+                    <input type="file" id="templateInput" class="form-control" accept="image/*">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Excel Data (Headers: Name, Org)</label>
+                    <input type="file" id="excelInput" class="form-control" accept=".xlsx, .xls">
+                </div>
+
+                <hr>
+                <h5>2. Customize Styles</h5>
+                
+                <div class="style-group">
+                    <h6>Guest Name</h6>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="small">Size</label>
+                            <input type="number" id="nameSize" class="form-control form-control-sm" value="60">
+                        </div>
+                        <div class="col-6">
+                            <label class="small">Color</label>
+                            <input type="color" id="nameColor" class="form-control form-control-sm form-control-color w-100" value="#000000">
+                        </div>
+                        <div class="col-12">
+                            <label class="small">Font</label>
+                            <select id="nameFont" class="form-select form-select-sm">
+                                <option value="Arial">Arial</option>
+                                <option value="Verdana">Verdana</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                                <option value="Courier New">Courier New</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="Impact">Impact</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="style-group org">
+                    <h6>Organisation</h6>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="small">Size</label>
+                            <input type="number" id="orgSize" class="form-control form-control-sm" value="35">
+                        </div>
+                        <div class="col-6">
+                            <label class="small">Color</label>
+                            <input type="color" id="orgColor" class="form-control form-control-sm form-control-color w-100" value="#666666">
+                        </div>
+                        <div class="col-12">
+                            <label class="small">Font</label>
+                            <select id="orgFont" class="form-select form-select-sm">
+                                <option value="Arial">Arial</option>
+                                <option value="Verdana" selected>Verdana</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                                <option value="Courier New">Courier New</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="Impact">Impact</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info small">
+                    <strong>Tip:</strong> Click on the image and drag the text aroundto set positions. 
+                </div>
+
+                <button id="downloadBtn" class="btn btn-primary w-100 mt-2" disabled>Generate & Download All</button>
+                <p class="text-muted small mt-2">*Note: Browser will prompt for multiple downloads if JSZip is not used.</p>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <strong>Live Preview</strong>
+                    <span class="badge bg-info text-dark">Drag text to reposition</span>
+                </div>
+                <div class="card-body text-center p-0">
+                    <div id="previewContainer">
+                        <canvas id="tagCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('tagCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false }); // Optimized context
+    
+    let templateImg = new Image();
+    let userData = [];
+    
+    // State for dragging
+    let elements = {
+        name: { x: 200, y: 150, text: "GUEST NAME", width: 0, height: 0 },
+        org: { x: 200, y: 220, text: "ORGANISATION", width: 0, height: 0 }
+    };
+    let dragTarget = null;
+    let isDragging = false;
+    let offset = { x: 0, y: 0 };
+
+    // --- Initialization & Listeners ---
+
+    templateInput.onchange = (e) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            templateImg.onload = () => {
+                canvas.width = templateImg.width;
+                canvas.height = templateImg.height;
+                // Center elements initially
+                elements.name.x = canvas.width / 2;
+                elements.org.x = canvas.width / 2;
+                updatePreview();
+            };
+            templateImg.src = event.target.result;
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    };
+
+    excelInput.onchange = (e) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const data = new Uint8Array(event.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            userData = XLSX.utils.sheet_to_json(firstSheet);
+            if(userData.length > 0) {
+                document.getElementById('downloadBtn').disabled = false;
+                elements.name.text = (userData[0].Name || userData[0].name || "Guest").toUpperCase();
+                elements.org.text = (userData[0].Organisation || userData[0].organisation || userData[0].Org || "Company").toUpperCase();
+                updatePreview();
+            }
+        };
+        reader.readAsArrayBuffer(e.target.files[0]);
+    };
+
+    // --- Drag Logic ---
+
+    function getMousePos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
+        };
+    }
+
+    function isOverElement(mousePos, el, type) {
+        const fontSize = parseInt(document.getElementById(type + 'Size').value);
+        // Approximation of text box for hit testing
+        const width = el.width || 200; 
+        const height = fontSize;
+        return mousePos.x > el.x - width/2 && mousePos.x < el.x + width/2 &&
+               mousePos.y > el.y - height && mousePos.y < el.y + 10;
+    }
+
+    canvas.onmousedown = (e) => {
+        const mousePos = getMousePos(e);
+        if (isOverElement(mousePos, elements.name, 'name')) {
+            dragTarget = 'name';
+            isDragging = true;
+        } else if (isOverElement(mousePos, elements.org, 'org')) {
+            dragTarget = 'org';
+            isDragging = true;
+        }
+        if (isDragging) {
+            offset.x = mousePos.x - elements[dragTarget].x;
+            offset.y = mousePos.y - elements[dragTarget].y;
+        }
+    };
+
+    window.onmousemove = (e) => {
+        const mousePos = getMousePos(e);
+        
+        // Change cursor style
+        if (!isDragging) {
+            if (isOverElement(mousePos, elements.name, 'name') || isOverElement(mousePos, elements.org, 'org')) {
+                canvas.style.cursor = 'move';
+            } else {
+                canvas.style.cursor = 'default';
+            }
+        }
+
+        if (isDragging && dragTarget) {
+            elements[dragTarget].x = mousePos.x - offset.x;
+            elements[dragTarget].y = mousePos.y - offset.y;
+            // Use requestAnimationFrame for buttery smooth updates
+            requestAnimationFrame(updatePreview);
+        }
+    };
+
+    window.onmouseup = () => {
+        isDragging = false;
+        dragTarget = null;
+    };
+
+    // --- Rendering ---
+
+    function updatePreview() {
+        if (!templateImg.src) return;
+
+        // Draw Background
+        ctx.drawImage(templateImg, 0, 0);
+
+        // Draw Name
+        const nSize = document.getElementById('nameSize').value;
+        const nColor = document.getElementById('nameColor').value;
+        const nFont = document.getElementById('nameFont').value;
+        ctx.fillStyle = nColor;
+        ctx.font = `${nSize}px ${nFont}`;
+        ctx.textAlign = "center";
+        ctx.fillText(elements.name.text, elements.name.x, elements.name.y);
+        elements.name.width = ctx.measureText(elements.name.text).width;
+
+        // Draw Org
+        const oSize = document.getElementById('orgSize').value;
+        const oColor = document.getElementById('orgColor').value;
+        const oFont = document.getElementById('orgFont').value;
+        ctx.fillStyle = oColor;
+        ctx.font = `${oSize}px ${oFont}`;
+        ctx.textAlign = "center";
+        ctx.fillText(elements.org.text, elements.org.x, elements.org.y);
+        elements.org.width = ctx.measureText(elements.org.text).width;
+    }
+
+    // Bind all inputs to update preview instantly
+    document.querySelectorAll('input, select').forEach(input => {
+        input.addEventListener('input', updatePreview);
+    });
+
+    // --- Bulk Export ---
+
+    document.getElementById('downloadBtn').onclick = () => {
+        userData.forEach((user, index) => {
+            const name = (user.Name || user.name || "Guest").toUpperCase();
+            const org = (user.Organisation || user.organisation || user.Org || "").toUpperCase();
+            
+            ctx.drawImage(templateImg, 0, 0);
+            
+            // Name
+            ctx.fillStyle = document.getElementById('nameColor').value;
+            ctx.font = `${document.getElementById('nameSize').value}px ${document.getElementById('nameFont').value}`;
+            ctx.textAlign = "center";
+            ctx.fillText(name, elements.name.x, elements.name.y);
+            
+            // Org
+            ctx.fillStyle = document.getElementById('orgColor').value;
+            ctx.font = `${document.getElementById('orgSize').value}px ${document.getElementById('orgFont').value}`;
+            ctx.fillText(org, elements.org.x, elements.org.y);
+
+            const link = document.createElement('a');
+            link.download = `tag_${name.replace(/\s+/g, '_')}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+        // Reset preview to first user
+        updatePreview();
+    };
+
+</script>
+
+</body>
+</html>
