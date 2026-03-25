@@ -35,9 +35,50 @@
 
         /* Leaderboard styling */
         .leaderboard-item { display: flex; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 10px; margin-bottom: 5px; border-radius: 5px; }
+
+        /* Spinner Overlay */
+        #loadingOverlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(70, 23, 143, 0.9); /* Kahoot Purple */
+            z-index: 1000;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .spinner-border { width: 4rem; height: 4rem; }
+
+        /* Full-screen Result Overlays */
+        .result-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 2000; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .bg-correct { background-color: var(--kahoot-green); }
+        .bg-wrong { background-color: var(--kahoot-red); }
+
+        /* Rank footer for player */
+        #playerRankDisplay {
+            position: fixed; bottom: 0; left: 0; width: 100%; 
+            background: rgba(0,0,0,0.5); padding: 15px; font-size: 1.2rem;
+        }
     </style>
 </head>
 <body>
+
+<div id="loadingOverlay">
+    <div class="spinner-border text-light mb-3" role="status"></div>
+    <h3>Answer Saved! Waiting for results...</h3>
+</div>
+
+<div id="resultOverlay" class="result-overlay">
+    <h1 id="resultStatus" class="display-1 fw-bold">CORRECT</h1>
+    <h2 id="resultPoints" class="display-4">+0 pts</h2>
+</div>
+
+<div id="playerRankDisplay" class="d-none">
+    You are currently in <span id="rankNumber" class="fw-bold">--</span> place
+</div>
 
 <div class="container text-center py-4">
     <div id="lobbyScreen" class="game-screen active-screen">
@@ -48,6 +89,40 @@
             <div id="playerList" class="d-flex flex-wrap justify-content-center"></div>
         </div>
         <button id="startBtn" class="btn btn-light btn-lg d-none" onclick="startGame()">Start Quiz</button>
+    </div>
+
+    <div id="hostQuestionScreen" class="game-screen">
+        <div class="progress mb-4" style="height: 30px;">
+            <div id="hostTimerBar" class="progress-bar bg-warning" style="width: 100%"></div>
+        </div>
+        <img id="questionImage" src="" class="img-fluid rounded mb-3" style="max-height: 250px; display: block; margin: 0 auto;">
+        <h1 id="displayQuestionText" class="display-4 fw-bold mb-5"></h1>
+        <div class="row g-4">
+            <div class="col-6"><div class="p-4 bg-red rounded-3 h3" id="opt0"></div></div>
+            <div class="col-6"><div class="p-4 bg-blue rounded-3 h3" id="opt1"></div></div>
+            <div class="col-6"><div class="p-4 bg-yellow rounded-3 h3" id="opt2"></div></div>
+            <div class="col-6"><div class="p-4 bg-green rounded-3 h3" id="opt3"></div></div>
+        </div>
+        <div class="mt-4 d-flex justify-content-center gap-2">
+            <button class="btn btn-outline-warning" onclick="skipQuestion()">Skip Question ⏭️</button>
+            <button class="btn btn-outline-danger" onclick="quitToLobby()">Quit Game ❌</button>
+        </div>
+
+    <div id="postQuestionControls" class="mt-4 d-none">
+        <button id="flowBtn" class="btn btn-primary btn-lg" onclick="handleGameFlow()">Proceed →</button>
+    </div>
+    </div>
+
+    <div id="hostScoreboard" class="game-screen">
+        <h1 class="display-3 fw-bold mb-4">Leaderboard</h1>
+        <div id="leaderboardList" class="mx-auto" style="max-width: 600px;"></div>
+        <button class="btn btn-light btn-lg mt-4" onclick="handleGameFlow()">Next Question →</button>
+    </div>
+
+    <div id="finalPodiumScreen" class="game-screen">
+        <h1 class="display-1 fw-bold mb-4">🏆 Final Winners 🏆</h1>
+        <div id="finalWinnersList" class="display-4"></div>
+        <button class="btn btn-danger btn-lg mt-5" onclick="quitToLobby()">Finish Game</button>
     </div>
 
     <div id="joinScreen" class="game-screen">
@@ -69,13 +144,13 @@
             <div id="timerBar" class="progress-bar" style="width: 100%"></div>
         </div>
 
-        <button id="nextBtn" class="btn btn-warning mt-4 d-none" onclick="nextQuestion()">Next Question</button>
+        <button id="nextBtn" class="btn btn-warning mt-4 d-none" onclick="handleGameFlow()">Next Question</button>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, push, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, get, increment, set, onValue, push, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     // --- CONFIGURATION ---
     const firebaseConfig = {
@@ -96,9 +171,9 @@
 
 
     const questions = [
-        { q: "What is the capital of France?", options: ["London", "Berlin", "Paris", "Madrid"], correct: 2 },
-        { q: "Which planet is known as the Red Planet?", options: ["Earth", "Mars", "Jupiter", "Venus"], correct: 1 },
-        { q: "What is 5 + 7?", options: ["10", "11", "12", "13"], correct: 2 }
+        { q: "What is the capital of France?", options: ["London", "Berlin", "Paris", "Madrid"], correct: 2, img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400" },
+        { q: "Which planet is known as the Red Planet?", options: ["Earth", "Mars", "Jupiter", "Venus"], correct: 1, img: "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=400" },
+        { q: "What is 5 + 7?", options: ["10", "11", "12", "13"], correct: 2, img: "https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?w=400" }
     ];
 
     let currentQuestionIndex = 0;
@@ -134,6 +209,48 @@
         });
     }
 
+
+    window.handleGameFlow = async function() {
+        const gameSnap = await get(gameRef);
+        const data = gameSnap.val();
+
+        if (data.state === 'playing') {
+            update(gameRef, { state: 'scoreboard', isAcceptingAnswers: false });
+        } else if (data.state === 'scoreboard') {
+            const nextIdx = (data.currentQuestion || 0) + 1;
+            if (nextIdx < questions.length) {
+                update(gameRef, { 
+                    state: 'playing',
+                    currentQuestion: nextIdx, 
+                    startTime: serverTimestamp(), // Reset timer for next question
+                    duration: 20,
+                    isAcceptingAnswers: true 
+                });
+            } else {
+                update(gameRef, { state: 'final' });
+            }
+        }
+    };
+
+
+    // Logic to render the leaderboard sorted by score
+    function updateLeaderboardUI() {
+        onValue(playersRef, (snapshot) => {
+            const players = snapshot.val();
+            if (!players) return;
+            
+            const sorted = Object.values(players).sort((a, b) => b.score - a.score);
+            const listHtml = sorted.map((p, i) => `
+                <div class="leaderboard-item">
+                    <span>${i+1}. ${p.name}</span>
+                    <span class="fw-bold">${p.score} pts</span>
+                </div>
+            `).join('');
+            
+            document.getElementById('leaderboardList').innerHTML = listHtml;
+        }, { onlyOnce: true });
+    }
+
     function listenToPlayers() {
         onValue(playersRef, (snapshot) => {
             const list = document.getElementById('playerList');
@@ -147,41 +264,68 @@
         });
     }
 
+    // Helper to get time
+    let serverOffset = 0;
+    const offsetRef = ref(db, ".info/serverTimeOffset");
+    onValue(offsetRef, (snap) => { serverOffset = snap.val() || 0; });
+
     window.startGame = function() {
         update(gameRef, { 
             state: 'playing', 
             currentQuestion: 0, 
-            timer: 20, 
+            startTime: serverTimestamp(), // Sync start time
+            duration: 20, 
             isAcceptingAnswers: true 
         });
     };
 
-    window.nextQuestion = function() {
-        const nextIdx = currentQuestionIndex + 1;
-        if (nextIdx < questions.length) {
-            update(gameRef, { 
-                currentQuestion: nextIdx, 
-                timer: 20, 
-                isAcceptingAnswers: true 
-            });
-        } else {
-            update(gameRef, { state: 'finished' });
+
+
+    window.skipQuestion = function() {
+        // 1. Kill the local timer interval immediately
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
         }
+        // 2. Set timer to 0 and close answers in one transaction
+        update(gameRef, { 
+            isAcceptingAnswers: false, 
+            timer: 0 
+        });
     };
 
-    // Admin Timer Logic (Run only on admin side)
-    function runTimer(seconds) {
-        let timeLeft = seconds;
-        clearInterval(timerInterval);
+    function runTimerUI(startTime, duration, barId) {
+        if (timerInterval) clearInterval(timerInterval);
+        
+        const bar = document.getElementById(barId);
         timerInterval = setInterval(() => {
-            timeLeft--;
-            update(gameRef, { timer: timeLeft });
-            if (timeLeft <= 0) {
+            const now = Date.now() + serverOffset;
+            const elapsed = Math.floor((now - startTime) / 1000);
+            const remaining = Math.max(0, duration - elapsed);
+            const percentage = (remaining / duration) * 100;
+            
+            bar.style.width = percentage + "%";
+
+            if (remaining <= 0) {
                 clearInterval(timerInterval);
-                update(gameRef, { isAcceptingAnswers: false });
+                if (isAdmin) update(gameRef, { isAcceptingAnswers: false });
             }
-        }, 1000);
+        }, 100); // Smooth update at 10fps
     }
+
+    window.quitToLobby = function() {
+        if (confirm("Quit game and return to Lobby? Progress will be lost.")) {
+            // Reset game state and clear answers/players if desired
+            set(gameRef, { 
+                state: 'lobby', 
+                currentQuestion: 0, 
+                isAcceptingAnswers: false 
+            });
+            // Optional: clear players
+            set(playersRef, {}); 
+            location.reload(); // Refresh host to regenerate QR
+        }
+    };
 
     // --- PLAYER LOGIC ---
     window.joinGame = function() {
@@ -196,72 +340,155 @@
         document.getElementById('questionText').innerText = "Waiting for Host to start...";
     };
 
-    window.submitAnswer = function(choiceIndex) {
+    window.submitAnswer = async function(choiceIndex) {
+        // 1. Immediate local lock to prevent multiple clicks
         if (!canAnswer) return;
+        canAnswer = false; 
 
-        const correctIndex = questions[currentQuestionIndex].correct;
-        const isCorrect = choiceIndex === correctIndex;
-        
-        // Lock the UI
-        canAnswer = false;
+        // 2. Immediate UI Feedback
+        const overlay = document.getElementById('loadingOverlay');
+        if (overlay) overlay.style.display = 'flex';
         document.getElementById('questionScreen').style.opacity = "0.5";
         document.getElementById('questionScreen').style.pointerEvents = "none";
 
-        // Scoring: 1000 points for correct answer
-        if (isCorrect) {
+        try {
+            // Fetch current game state to get the timer for "Fastest Finger"
+            const gameSnap = await get(gameRef);
+            const gameData = gameSnap.val();
+            
+            // Safety: Ensure the question hasn't expired while clicking
+            if (!gameData.isAcceptingAnswers) {
+                document.getElementById('answerFeedback').innerText = "Too late!";
+                return;
+            }
+
+            const correctIndex = questions[currentQuestionIndex].correct;
             const playerRef = ref(db, `quizGame/players/${myPlayerKey}`);
-            // Get current score first, then update
-            get(playerRef).then((snapshot) => {
-                const currentScore = snapshot.val().score || 0;
-                update(playerRef, { score: currentScore + 1000 });
-                document.getElementById('answerFeedback').innerHTML = "<span class='text-success'>CORRECT! +1000</span>";
-            });
-        } else {
-            document.getElementById('answerFeedback').innerHTML = "<span class='text-danger'>WRONG! 0 pts</span>";
+
+            if (choiceIndex === correctIndex) {
+                const secondsLeft = gameData.timer || 0;
+                const pointsEarned = 500 + (secondsLeft * 25);
+                
+                // Use atomic increment to prevent score corruption
+                await update(playerRef, { 
+                    score: increment(pointsEarned) 
+                });
+                document.getElementById('answerFeedback').innerHTML = `<span class='text-success'>Correct! +${pointsEarned}</span>`;
+            } else {
+                document.getElementById('answerFeedback').innerHTML = `<span class='text-danger'>Wrong!</span>`;
+            }
+
+            // Save record of the answer
+            const answerRef = ref(db, `quizGame/answers/q${currentQuestionIndex}/${myPlayerKey}`);
+            await set(answerRef, choiceIndex);
+
+        } catch (error) {
+            console.error("Submission error:", error);
+            canAnswer = true; // Unlock only on error
+            if (overlay) overlay.style.display = 'none';
         }
     };
 
     // --- SYNC STATE ---
+    let lastLoadedQuestion = -1;
+
     onValue(gameRef, (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
 
         currentQuestionIndex = data.currentQuestion || 0;
-        
-        // Update Timer UI
-        const timerBar = document.getElementById('timerBar');
-        if (timerBar) {
-            const percentage = (data.timer / 20) * 100;
-            timerBar.style.width = percentage + "%";
+        const currentQ = questions[currentQuestionIndex];
+
+        // --- RESET LOGIC FOR NEW QUESTIONS ---
+        if (data.state === 'playing' && currentQuestionIndex !== lastLoadedQuestion) {
+            lastLoadedQuestion = currentQuestionIndex;
+            canAnswer = true;
+            // Reset UI
+            document.getElementById('loadingOverlay').style.display = 'none';
+            document.getElementById('resultOverlay').style.display = 'none';
+            document.getElementById('questionScreen').style.opacity = "1";
+            document.getElementById('questionScreen').style.pointerEvents = "all";
+            document.getElementById('answerFeedback').innerText = "";
         }
 
-        if (!isAdmin && data.state === 'playing') {
-            showScreen('questionScreen');
-            
-            // If a new question starts, reset the UI for the player
-            if (data.isAcceptingAnswers && !canAnswer) {
-                canAnswer = true;
-                document.getElementById('questionScreen').style.opacity = "1";
-                document.getElementById('questionScreen').style.pointerEvents = "all";
-                document.getElementById('answerFeedback').innerText = "";
-                document.getElementById('questionText').innerText = questions[currentQuestionIndex].q;
+        // --- TIMER SYNC ---
+        if (data.state === 'playing' && data.startTime) {
+            const barId = isAdmin ? 'hostTimerBar' : 'timerBar';
+            runTimerUI(data.startTime, data.duration || 20, barId);
+        }
+
+        // --- ADMIN VIEW ---
+        if (isAdmin) {
+            if (data.state === 'playing') {
+                showScreen('hostQuestionScreen');
+                document.getElementById('displayQuestionText').innerText = currentQ.q;
+                document.getElementById('questionImage').src = currentQ.img || "";
+                for(let i=0; i<4; i++) document.getElementById(`opt${i}`).innerText = currentQ.options[i];
+
+                const controls = document.getElementById('postQuestionControls');
+                !data.isAcceptingAnswers ? controls.classList.remove('d-none') : controls.classList.add('d-none');
+            } else if (data.state === 'scoreboard') {
+                showScreen('hostScoreboard');
+                updateLeaderboardUI();
+            } else if (data.state === 'final') {
+                showScreen('finalPodiumScreen');
+                renderFinalPodium();
             }
-            
-            // Force stop if time runs out
-            if (!data.isAcceptingAnswers) {
-                canAnswer = false;
-                document.getElementById('questionScreen').style.opacity = "0.5";
-                if (document.getElementById('answerFeedback').innerText === "") {
-                    document.getElementById('answerFeedback').innerText = "Time's Up!";
+        }
+
+        // --- PLAYER VIEW ---
+        if (!isAdmin && myPlayerKey) {
+            if (data.state === 'playing') {
+                showScreen('questionScreen');
+                document.getElementById('questionText').innerText = currentQ.q;
+                document.getElementById('playerRankDisplay').classList.add('d-none');
+
+                // Handle Question End (Show Results)
+                if (!data.isAcceptingAnswers) {
+                    showResultOverlay(currentQuestionIndex);
                 }
+            } else if (data.state === 'scoreboard') {
+                document.getElementById('resultOverlay').style.display = 'none';
+                showPlayerRank();
             }
-        }
-
-        // Trigger Admin timer if I'm the admin and a new question just set
-        if (isAdmin && data.isAcceptingAnswers && data.timer === 20) {
-            runTimer(20);
         }
     });
+
+    async function showResultOverlay(qIdx) {
+        const resOverlay = document.getElementById('resultOverlay');
+        const ansSnap = await get(ref(db, `quizGame/answers/q${qIdx}/${myPlayerKey}`));
+        const myAns = ansSnap.val();
+        const isCorrect = (myAns === questions[qIdx].correct);
+
+        resOverlay.style.display = 'flex';
+        resOverlay.className = `result-overlay ${isCorrect ? 'bg-correct' : 'bg-wrong'}`;
+        document.getElementById('resultStatus').innerText = isCorrect ? "CORRECT" : (myAns === null ? "TIME'S UP" : "WRONG");
+        document.getElementById('resultPoints').innerText = isCorrect ? "Fast and accurate!" : "Better luck next time!";
+    }
+
+    async function showPlayerRank() {
+        const snap = await get(playersRef);
+        const players = snap.val();
+        if (!players) return;
+        const sortedKeys = Object.keys(players).sort((a, b) => players[b].score - players[a].score);
+        const myRank = sortedKeys.indexOf(myPlayerKey) + 1;
+        const rankDisp = document.getElementById('playerRankDisplay');
+        rankDisp.classList.remove('d-none');
+        document.getElementById('rankNumber').innerText = myRank + (["st","nd","rd"][myRank-1] || "th");
+    }
+
+    function renderFinalPodium() {
+    onValue(playersRef, (snapshot) => {
+        const players = snapshot.val();
+        if (!players) return;
+        const sorted = Object.values(players).sort((a, b) => b.score - a.score).slice(0, 3);
+        const icons = ["🥇", "🥈", "🥉"];
+        const html = sorted.map((p, i) => `
+            <div class="mb-3">${icons[i]} ${p.name}: ${p.score}</div>
+        `).join('');
+        document.getElementById('finalWinnersList').innerHTML = html;
+    }, { onlyOnce: true });
+}
 
 </script>
 </body>
