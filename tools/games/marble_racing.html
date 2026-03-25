@@ -100,7 +100,7 @@
     engine.positionIterations = 10;
     engine.velocityIterations = 10;
     const world = engine.world;
-    const width = 600, worldHeight = 4500, viewHeight = 800;
+    const width = 600, worldHeight = 4000, viewHeight = 800;
     const obstacleColor = '#ADD8E6';
 
     const render = Render.create({
@@ -148,7 +148,7 @@
         }
 
         // wheels and ramps
-        for (let y = 850; y < 1730; y += 220) {
+        for (let y = 850; y < 1510; y += 220) {
             createWheel(width / 2 + (Math.random() * 100 - 50), y);
             Composite.add(world, [
                 Bodies.rectangle(110, y + 110, 250, 15, { isStatic: true, angle: 0.2, render: { fillStyle: obstacleColor } }),
@@ -156,7 +156,7 @@
             ]);
         }
 
-        for (let y = 1900; y < 3700; y += 450) {
+        for (let y = 1700; y < 3050; y += 450) {
             // 1. Sliding "Air-Lock" Doors
             const door = Bodies.rectangle(width / 2, y, 200, 20, { isStatic: true, render: { fillStyle: '#ff4757' } });
             slidingDoors.push({ body: door, startX: width / 2, range: 150, speed: 0.002 });
@@ -180,7 +180,7 @@
         // bottom pins
         for (let r = 0; r < 10; r++) for (let c = 0; c < 11; c++) {
             const x = (c * 50) + (r % 2 === 0 ? 25 : 50);
-            if (x < width - 25) Composite.add(world, Bodies.circle(x + 13, 3800 + (r * 60), 5, dotOptions));
+            if (x < width - 25) Composite.add(world, Bodies.circle(x + 13, 3130 + (r * 60), 5, dotOptions));
         }
     }
 
@@ -221,7 +221,7 @@
         for (let i = particles.length - 1; i >= 0; i--) {
             let p = particles[i]; p.opacity -= 0.02; p.y += 2;
             if (p.opacity <= 0) particles.splice(i, 1);
-            else { ctx.beginPath(); ctx.arc(p.x, p.y - cameraY, p.size, 0, Math.PI * 2); ctx.fillStyle = `rgba(255, ${80 + 175 * p.opacity}, 0, ${p.opacity})`; ctx.fill(); }
+            else { ctx.beginPath(); ctx.arc(p.x, p.y - cameraY, p.size, 0, Math.PI * 2); ctx.fillStyle = `rgba(0, ${80 + 175 * p.opacity}, 255, ${p.opacity})`; ctx.fill(); }
         }
         ctx.globalAlpha = 1; ctx.fillStyle = "white";
         sats.forEach(r => {

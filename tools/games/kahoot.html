@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuizLive - Kahoot Clone</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --kahoot-red: #e21b3c; --kahoot-blue: #1368ce;
+            --kahoot-yellow: #d89e00; --kahoot-green: #26890c;
+            --kahoot-purple: #46178f;
+        }
+        body { background-color: var(--kahoot-purple); color: white; min-height: 100vh; font-family: 'Segoe UI', sans-serif; }
+        
+        /* Answer Buttons */
+        .btn-answer { height: 120px; font-size: 1.5rem; font-weight: bold; border: none; color: white; border-radius: 8px; transition: transform 0.1s; }
+        .btn-answer:active { transform: scale(0.95); }
+        .bg-red { background-color: var(--kahoot-red); }
+        .bg-blue { background-color: var(--kahoot-blue); }
+        .bg-yellow { background-color: var(--kahoot-yellow); }
+        .bg-green { background-color: var(--kahoot-green); }
+
+        /* Screens */
+        .game-screen { display: none; padding: 20px; }
+        .active-screen { display: block; }
+        
+        #qr-code canvas, #qr-code img { margin: 0 auto; border: 10px solid white; border-radius: 10px; }
+        .player-badge { background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px; margin: 5px; display: inline-block; }
+
+        /* Timer styling */
+        .progress { height: 20px; background-color: rgba(255,255,255,0.2); border-radius: 10px; overflow: hidden; }
+        .progress-bar { background-color: #fff; transition: width 1s linear; }
+
+        /* Leaderboard styling */
+        .leaderboard-item { display: flex; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 10px; margin-bottom: 5px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container text-center py-4">
+    <div id="lobbyScreen" class="game-screen active-screen">
+        <h1 class="display-3 fw-bold mb-4">Join the Game!</h1>
+        <div id="qr-code" class="mb-4"></div>
+        <div class="card bg-dark text-white p-3 mb-4">
+            <h3>Players Joined:</h3>
+            <div id="playerList" class="d-flex flex-wrap justify-content-center"></div>
+        </div>
+        <button id="startBtn" class="btn btn-light btn-lg d-none" onclick="startGame()">Start Quiz</button>
+    </div>
+
+    <div id="joinScreen" class="game-screen">
+        <h2 class="mb-4">Enter Nickname</h2>
+        <input type="text" id="nicknameInput" class="form-control form-control-lg mb-3" placeholder="CoolNickname123">
+        <button class="btn btn-success btn-lg w-100" onclick="joinGame()">Join Now!</button>
+    </div>
+
+    <div id="questionScreen" class="game-screen">
+        <h2 id="questionText" class="mb-4">Waiting for question...</h2>
+        <div class="row g-3">
+            <div class="col-6"><button class="btn-answer bg-red w-100" onclick="submitAnswer(0)">▲</button></div>
+            <div class="col-6"><button class="btn-answer bg-blue w-100" onclick="submitAnswer(1)">◆</button></div>
+            <div class="col-6"><button class="btn-answer bg-yellow w-100" onclick="submitAnswer(2)">●</button></div>
+            <div class="col-6"><button class="btn-answer bg-green w-100" onclick="submitAnswer(3)">■</button></div>
+        </div>
+        <div id="answerFeedback" class="mt-4 h4"></div>
+        <div class="progress mb-4">
+            <div id="timerBar" class="progress-bar" style="width: 100%"></div>
+        </div>
+
+        <button id="nextBtn" class="btn btn-warning mt-4 d-none" onclick="nextQuestion()">Next Question</button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue, push, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    // --- CONFIGURATION ---
+    const firebaseConfig = {
+        // Use your existing config here
+        apiKey: "AIzaSyBdPDS5r4aoKcqBzJdI-cbCTCPY4VBfs0g",
+        authDomain: "github-page-b27e5.firebaseapp.com",
+        databaseURL: "https://github-page-b27e5-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "github-page-b27e5",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const gameRef = ref(db, 'quizGame');
+    const playersRef = ref(db, 'quizGame/players');
+
+    let myPlayerKey = null;
+    let isAdmin = false;
+
+
+    const questions = [
+        { q: "What is the capital of France?", options: ["London", "Berlin", "Paris", "Madrid"], correct: 2 },
+        { q: "Which planet is known as the Red Planet?", options: ["Earth", "Mars", "Jupiter", "Venus"], correct: 1 },
+        { q: "What is 5 + 7?", options: ["10", "11", "12", "13"], correct: 2 }
+    ];
+
+    let currentQuestionIndex = 0;
+    let timerInterval = null;
+    let canAnswer = false;
+    // --- INITIALIZATION ---
+    window.onload = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // If URL has ?role=admin
+        if (urlParams.get('role') === 'admin') {
+            isAdmin = true;
+            generateQR();
+            document.getElementById('startBtn').classList.remove('d-none');
+            listenToPlayers();
+        } else {
+            // Standard user join
+            showScreen('joinScreen');
+        }
+    };
+
+    function showScreen(id) {
+        document.querySelectorAll('.game-screen').forEach(s => s.classList.remove('active-screen'));
+        document.getElementById(id).classList.add('active-screen');
+    }
+
+    // --- HOST LOGIC ---
+    function generateQR() {
+        new QRCode(document.getElementById("qr-code"), {
+            text: window.location.href.split('?')[0], // Link to this page without admin params
+            width: 256,
+            height: 256
+        });
+    }
+
+    function listenToPlayers() {
+        onValue(playersRef, (snapshot) => {
+            const list = document.getElementById('playerList');
+            list.innerHTML = "";
+            const data = snapshot.val();
+            if (data) {
+                Object.values(data).forEach(p => {
+                    list.innerHTML += `<span class="player-badge">${p.name}</span>`;
+                });
+            }
+        });
+    }
+
+    window.startGame = function() {
+        update(gameRef, { 
+            state: 'playing', 
+            currentQuestion: 0, 
+            timer: 20, 
+            isAcceptingAnswers: true 
+        });
+    };
+
+    window.nextQuestion = function() {
+        const nextIdx = currentQuestionIndex + 1;
+        if (nextIdx < questions.length) {
+            update(gameRef, { 
+                currentQuestion: nextIdx, 
+                timer: 20, 
+                isAcceptingAnswers: true 
+            });
+        } else {
+            update(gameRef, { state: 'finished' });
+        }
+    };
+
+    // Admin Timer Logic (Run only on admin side)
+    function runTimer(seconds) {
+        let timeLeft = seconds;
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            update(gameRef, { timer: timeLeft });
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                update(gameRef, { isAcceptingAnswers: false });
+            }
+        }, 1000);
+    }
+
+    // --- PLAYER LOGIC ---
+    window.joinGame = function() {
+        const name = document.getElementById('nicknameInput').value;
+        if (!name) return alert("Enter a name!");
+        
+        const newPlayer = push(playersRef);
+        myPlayerKey = newPlayer.key;
+        set(newPlayer, { name: name, score: 0 });
+        
+        showScreen('questionScreen');
+        document.getElementById('questionText').innerText = "Waiting for Host to start...";
+    };
+
+    window.submitAnswer = function(choiceIndex) {
+        if (!canAnswer) return;
+
+        const correctIndex = questions[currentQuestionIndex].correct;
+        const isCorrect = choiceIndex === correctIndex;
+        
+        // Lock the UI
+        canAnswer = false;
+        document.getElementById('questionScreen').style.opacity = "0.5";
+        document.getElementById('questionScreen').style.pointerEvents = "none";
+
+        // Scoring: 1000 points for correct answer
+        if (isCorrect) {
+            const playerRef = ref(db, `quizGame/players/${myPlayerKey}`);
+            // Get current score first, then update
+            get(playerRef).then((snapshot) => {
+                const currentScore = snapshot.val().score || 0;
+                update(playerRef, { score: currentScore + 1000 });
+                document.getElementById('answerFeedback').innerHTML = "<span class='text-success'>CORRECT! +1000</span>";
+            });
+        } else {
+            document.getElementById('answerFeedback').innerHTML = "<span class='text-danger'>WRONG! 0 pts</span>";
+        }
+    };
+
+    // --- SYNC STATE ---
+    onValue(gameRef, (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        currentQuestionIndex = data.currentQuestion || 0;
+        
+        // Update Timer UI
+        const timerBar = document.getElementById('timerBar');
+        if (timerBar) {
+            const percentage = (data.timer / 20) * 100;
+            timerBar.style.width = percentage + "%";
+        }
+
+        if (!isAdmin && data.state === 'playing') {
+            showScreen('questionScreen');
+            
+            // If a new question starts, reset the UI for the player
+            if (data.isAcceptingAnswers && !canAnswer) {
+                canAnswer = true;
+                document.getElementById('questionScreen').style.opacity = "1";
+                document.getElementById('questionScreen').style.pointerEvents = "all";
+                document.getElementById('answerFeedback').innerText = "";
+                document.getElementById('questionText').innerText = questions[currentQuestionIndex].q;
+            }
+            
+            // Force stop if time runs out
+            if (!data.isAcceptingAnswers) {
+                canAnswer = false;
+                document.getElementById('questionScreen').style.opacity = "0.5";
+                if (document.getElementById('answerFeedback').innerText === "") {
+                    document.getElementById('answerFeedback').innerText = "Time's Up!";
+                }
+            }
+        }
+
+        // Trigger Admin timer if I'm the admin and a new question just set
+        if (isAdmin && data.isAcceptingAnswers && data.timer === 20) {
+            runTimer(20);
+        }
+    });
+
+</script>
+</body>
+</html>
