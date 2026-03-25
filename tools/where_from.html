@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Where Do I Come From?</title>
+    <style>
+        #map {
+            height: 80vh;
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
+        .info { margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+    <div class="info">
+        <h2>🌍 Where do you come from?</h2>
+        <p>Click anywhere on the map to pin your home city!</p>
+    </div>
+
+    <div id="map"></div>
+
+    <footer class="text-center text-muted p-1" style="bottom: 0;">
+        <div id="admin-container" style="background: white; padding: 15px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #ddd;" class="p-0 d-flex flex-column ">
+            <div id="loginForm" class="d-flex justify-content-center p-1 m-1">
+                <input type="password" id="adminPass" style="width: 15rem;" class="input-group input-group-sm" placeholder="Admin Password">
+                <button onclick="checkAdmin()" class="btn-sm btn btn-outline-secondary">Clear list</button>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, get, remove, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBdPDS5r4aoKcqBzJdI-cbCTCPY4VBfs0g",
+            authDomain: "github-page-b27e5.firebaseapp.com",
+            databaseURL: "https://github-page-b27e5-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "github-page-b27e5",
+            storageBucket: "github-page-b27e5.firebasestorage.app",
+            messagingSenderId: "996810085917",
+            appId: "1:996810085917:web:7bc9f4ec804863f708d8f4"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const mapRef = ref(db, 'map');
+
+        // On page load
+        const urlParams = new URLSearchParams(window.location.search);
+        const nameType = urlParams.get('name');
+
+        let map;
+        let userId = localStorage.getItem('map_user_id') || 'user_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('map_user_id', userId);
+
+        let markers = {};
+
+        async function initMap() {
+            const { Map } = await google.maps.importLibrary("maps");
+            const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
+
+            map = new Map(document.getElementById("map"), {
+                zoom: 8, 
+                center: { lat: 46.8182, lng: 8.2275 }, // Switzerland
+                mapId: "MAP_1",
+                // DISABLE "FANCY" STUFF
+                disableDefaultUI: true,       // Removes all controls (zoom, street view, etc.)
+                zoomControl: true,            // Re-enable just zoom for usability
+                mapTypeControl: false,        // Disables Satellite/Terrain toggle
+                streetViewControl: false,     // Disables Pegman
+                fullscreenControl: false,     // Disables Fullscreen toggle
+                rotateControl: false,         // Disables 3D rotation
+                gestureHandling: "greedy"     // Easier mobile zooming
+            });
+
+            if (nameType) {
+                map.addListener("click", (event) => {
+                    if (nameType && nameType.trim() !== "") {
+                        set(ref(db, 'map/' + userId), {
+                            name: nameType,
+                            lat: event.latLng.lat(),
+                            lng: event.latLng.lng()
+                        });
+                    }
+                });
+            } else {
+                map.addListener("click", (event) => {
+                    const userName = prompt("Please enter your name:");
+                    if (userName && userName.trim() !== "") {
+                        set(ref(db, 'map/' + userId), {
+                            name: userName,
+                            lat: event.latLng.lat(),
+                            lng: event.latLng.lng()
+                        });
+                    }
+                });
+            }
+            
+
+            onValue(mapRef, (snapshot) => {
+                const data = snapshot.val();
+                for (let id in markers) { markers[id].map = null; }
+                markers = {};
+
+                if (data) {
+                    Object.keys(data).forEach(id => {
+                        const loc = data[id];
+                        
+                        // 1. Create the standard Google Pin
+                        const pin = new PinElement({
+                            background: "#EA4335", // Classic Google Red
+                            borderColor: "#B31412",
+                            glyphColor: "white",
+                        });
+
+                        // 2. Create a wrapper to hold the Name + the Pin
+                        const container = document.createElement('div');
+                        container.style.display = 'flex';
+                        container.style.flexDirection = 'column';
+                        container.style.alignItems = 'center';
+                        
+                        const label = document.createElement('div');
+                        label.innerText = loc.name;
+                        label.style.background = 'white';
+                        label.style.padding = '2px 8px';
+                        label.style.borderRadius = '5px';
+                        label.style.fontSize = '12px';
+                        label.style.fontWeight = 'bold';
+                        label.style.marginBottom = '4px';
+                        label.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+                        label.style.whiteSpace = 'nowrap';
+
+                        container.appendChild(label);
+                        container.appendChild(pin.element);
+
+                        const marker = new AdvancedMarkerElement({
+                            map: map,
+                            position: { lat: loc.lat, lng: loc.lng },
+                            content: container,
+                            title: loc.name
+                        });
+                        markers[id] = marker;
+                    });
+                }
+            });
+        }
+
+        // Admin Password Logic
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        window.checkAdmin = async function() {
+            const passInput = document.getElementById('adminPass').value;
+            const hashedInput = await sha256(passInput);
+            const adminRef = ref(db, 'admin/passwordHash');
+            const snapshot = await get(adminRef);
+            
+            if (snapshot.exists() && snapshot.val() === hashedInput) {
+                if (confirm("Permanently delete all pins?")) {
+                    remove(mapRef);
+                }
+            } else {
+                alert("Unauthorized Access.");
+            }
+        };
+
+        // Corrected: Pass the function reference, don't execute it
+        window.initMap = initMap;
+    </script>
+
+    <script async
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAwpqOZHGYknm6kwNtk6s-ssawXX_I1UR8&callback=initMap&libraries=marker&v=weekly&loading=async">
+    </script>
+</body>
+</html>

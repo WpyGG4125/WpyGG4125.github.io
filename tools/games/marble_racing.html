@@ -28,7 +28,7 @@
 <div class="container py-5">
     <div class="row text-center mb-4">
         <div class="col">
-            <h1 class="display-4 fw-bold" style="color: #fe9100 !important;">Rocket Race: Deep Space 🚀</h1>
+            <h1 class="display-4 fw-bold" style="color: #fe9100 !important;">Satellite Race: Deep Space 🛰️</h1>
             <p class="lead">Monitoring the gauntlet. Names sync automatically from the Launch Pad.</p>
         </div>
     </div>
@@ -112,7 +112,7 @@
     Render.run(render);
     Runner.run(Runner.create(), engine);
 
-    let rockets = [], winners = [], particles = [], wheels = [], raceInProgress = false, 
+    let sats = [], winners = [], particles = [], wheels = [], raceInProgress = false, 
         cameraY = 0, cameraLocked = false, flippers = [], slidingDoors = [];
 
     function createWheel(x, y) {
@@ -126,7 +126,7 @@
 
     function buildTrack() {
         Composite.clear(world);
-        rockets = []; winners = []; particles = []; wheels = []; cameraY = 0; cameraLocked = false;
+        sats = []; winners = []; particles = []; wheels = []; cameraY = 0; cameraLocked = false;
         render.bounds.min.y = 0; render.bounds.max.y = viewHeight;
         document.getElementById('startBtn').innerText = "Release the Marbles!";
         document.getElementById('leaderboard').innerHTML = '';
@@ -196,7 +196,7 @@
             Body.setAngle(f.body, f.angle + (osc * f.side));
         });
         if (raceInProgress && !cameraLocked) {
-            let lowY = 0; rockets.forEach(r => { if (r.position.y > lowY) lowY = r.position.y; });
+            let lowY = 0; sats.forEach(r => { if (r.position.y > lowY) lowY = r.position.y; });
             if (lowY > viewHeight / 2) {
                 cameraY = lowY - viewHeight / 2;
                 if (cameraY > worldHeight - viewHeight) { cameraY = worldHeight - viewHeight; cameraLocked = true; }
@@ -224,12 +224,14 @@
             else { ctx.beginPath(); ctx.arc(p.x, p.y - cameraY, p.size, 0, Math.PI * 2); ctx.fillStyle = `rgba(255, ${80 + 175 * p.opacity}, 0, ${p.opacity})`; ctx.fill(); }
         }
         ctx.globalAlpha = 1; ctx.fillStyle = "white";
-        rockets.forEach(r => {
+        sats.forEach(r => {
             const { x, y } = r.position; const drawY = y - cameraY;
             if (r.isFlying) { Body.setAngle(r, 0); Body.setVelocity(r, { x: 0, y: -18 }); particles.push({ x, y, size: Math.random() * 12 + 6, opacity: 1 }); }
             ctx.save(); ctx.translate(x, drawY);
             ctx.rotate(r.isFlying ? -0.8 : r.angle + Math.PI);
-            ctx.font = "32px serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("🚀", 0, 0);
+            ctx.font = "32px serif"; ctx.textAlign = "center"; 
+            ctx.textBaseline = "middle"; 
+            ctx.fillText(r.isFlying ? "🚀" : "🛰️", 0, 0);
             ctx.restore();
             ctx.font = "bold 13px Arial"; ctx.fillText(r.label, x, drawY - 35);
         });
@@ -245,7 +247,7 @@
         raceInProgress = true; document.getElementById('startBtn').innerText = "Launching...";
         names.forEach(n => {
             const r = Bodies.circle(width/2 + (Math.random()*100-50), 50, 15, { restitution: 0.4, label: n, isFlying: false, render: { opacity: 0 } });
-            rockets.push(r); Composite.add(world, r);
+            sats.push(r); Composite.add(world, r);
         });
     });
 

@@ -35,6 +35,9 @@
                     <input type="text" id="nameInput" class="form-control form-control-lg" placeholder="Your Full Name">
                 </div>
                 <button id="submitBtn" onclick="submitName()" class="btn btn-primary btn-lg w-100">Check In</button>
+                <div id="resetContainer" class="mt-3 d-none">
+                    <button onclick="resetCheckIn()" class="btn btn-outline-secondary btn-sm">Check Out / Reset</button>
+                </div>
                 <div id="successMsg" class="mt-3 text-success d-none">You are on the list!</div>
             </div>
         </div>
@@ -54,8 +57,16 @@
                     <div class="card h-100 p-4 bg-light">
                         <h5>Join the List</h5>
                         <div class="qr-container my-3">
-                            <img src="../resources/textures/checkin.png" alt="QR Code" class="img-fluid rounded">
+                            <img id="qrImage" src="../resources/textures/checkin.png" alt="QR Code" class="img-fluid rounded">
                         </div>
+                        
+                        <div class="form-check d-flex justify-content-center mb-2">
+                            <input class="form-check-input me-2" type="checkbox" id="modeToggle" onchange="toggleQR()">
+                            <label class="form-check-label small text-muted" for="modeToggle">
+                                Enable Map Redirect
+                            </label>
+                        </div>
+
                         <p class="text-muted small">Scan to open this page.</p>
                     </div>
                 </div>
@@ -96,6 +107,10 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const checkinRef = ref(db, 'checkins');
+    
+    // On page load
+    const urlParams = new URLSearchParams(window.location.search);
+    const modeType = urlParams.get('mode');
 
     // Check if user already checked in previously
     window.addEventListener('DOMContentLoaded', () => {
@@ -115,11 +130,17 @@
     function lockInput(name) {
         const nameField = document.getElementById('nameInput');
         const submitBtn = document.getElementById('submitBtn');
+        const resetContainer = document.getElementById('resetContainer');
+        
         nameField.value = name;
         nameField.disabled = true;
+        
         submitBtn.classList.replace('btn-primary', 'btn-success');
         submitBtn.innerText = "Checked In ✓";
         submitBtn.disabled = true;
+
+        // Show the reset/checkout button
+        resetContainer.classList.remove('d-none');
     }
 
     // --- GUEST CHECK-IN ---
@@ -130,11 +151,49 @@
         if (name) {
             const now = new Date();
             const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            push(checkinRef, { name: name, time: timeString });
             
-            // Lock UI and save to local storage
+            // push() returns a reference that includes the unique key (.key)
+            const newEntryRef = push(checkinRef, { name: name, time: timeString });
+            
+            // Save both name and unique DB key to local storage
             localStorage.setItem('checkedInName', name);
+            localStorage.setItem('checkedInKey', newEntryRef.key);
+            
             lockInput(name);
+        }
+
+        if (modeType === 'map') {
+            window.location.href = 'where_from.html?name=' + name;
+        }
+    };
+
+    window.resetCheckIn = function() {
+        if (confirm("Are you sure you want to check out? This will remove you from the list.")) {
+            const key = localStorage.getItem('checkedInKey');
+            
+            // 1. Remove from Firebase if key exists
+            if (key) {
+                const userRef = ref(db, `checkins/${key}`);
+                remove(userRef);
+            }
+
+            // 2. Clean Local Storage
+            localStorage.removeItem('checkedInName');
+            localStorage.removeItem('checkedInKey');
+
+            // 3. Reset UI to original state
+            const nameField = document.getElementById('nameInput');
+            const submitBtn = document.getElementById('submitBtn');
+            const resetContainer = document.getElementById('resetContainer');
+
+            nameField.value = "";
+            nameField.disabled = false;
+            
+            submitBtn.classList.replace('btn-success', 'btn-primary');
+            submitBtn.innerText = "Check In";
+            submitBtn.disabled = false;
+            
+            resetContainer.classList.add('d-none');
         }
     };
 
@@ -183,6 +242,19 @@
             remove(checkinRef);
         }
     };
+
+    window.toggleQR = function() {
+        const qrImg = document.getElementById('qrImage');
+        const isChecked = document.getElementById('modeToggle').checked;
+        
+        // Switches the source based on checkbox state
+        if (isChecked) {
+            qrImg.src = "../resources/textures/checkin_map.png";
+        } else {
+            qrImg.src = "../resources/textures/checkin.png";
+        }
+    };
+
 </script>
 
 </body>
