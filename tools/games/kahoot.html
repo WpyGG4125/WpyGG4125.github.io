@@ -133,6 +133,22 @@
             position: fixed; top: 20px; right: 20px;
             display: flex; gap: 10px; z-index: 1050;
         }
+
+        /* Animation for revealing answers */
+        .opt-box {
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .reveal-correct {
+            transform: scale(1.1);
+            z-index: 10;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.5);
+            position: relative;
+        }
+        .reveal-wrong {
+            filter: grayscale(100%);
+            opacity: 0.35;
+            transform: scale(0.92);
+        }
     </style>
 </head>
 <body>
@@ -176,10 +192,10 @@
         <img id="questionImage" src="" class="img-fluid rounded mb-3" style="max-height: 250px; display: block; margin: 0 auto;">
         <h1 id="displayQuestionText" class="display-4 fw-bold mb-5"></h1>
         <div class="row g-4">
-            <div class="col-6"><div class="p-4 bg-red rounded-3 h3" id="opt0"></div></div>
-            <div class="col-6"><div class="p-4 bg-blue rounded-3 h3" id="opt1"></div></div>
-            <div class="col-6"><div class="p-4 bg-yellow rounded-3 h3" id="opt2"></div></div>
-            <div class="col-6"><div class="p-4 bg-green rounded-3 h3" id="opt3"></div></div>
+            <div class="col-6"><div class="p-4 bg-red rounded-3 h3 opt-box" id="opt0"></div></div>
+            <div class="col-6"><div class="p-4 bg-blue rounded-3 h3 opt-box" id="opt1"></div></div>
+            <div class="col-6"><div class="p-4 bg-yellow rounded-3 h3 opt-box" id="opt2"></div></div>
+            <div class="col-6"><div class="p-4 bg-green rounded-3 h3 opt-box" id="opt3"></div></div>
         </div>
 
         <div id="postQuestionControls" class="mt-4 d-none">
@@ -387,7 +403,7 @@
             const now = Date.now() + serverOffset;
             const elapsed = Math.floor((now - startTime) / 1000);
             const remaining = Math.max(0, duration - elapsed);
-            const percentage = (remaining / duration) * 100;
+            const percentage = (remaining / duration) * 100 - 5;
             
             bar.style.width = percentage + "%";
             if(circle) circle.innerText = remaining;
@@ -483,7 +499,25 @@ window.submitAnswer = async function(choiceIndex) {
             showScreen('hostQuestionScreen');
             document.getElementById('displayQuestionText').innerText = currentQ.q;
             document.getElementById('questionImage').src = currentQ.img || "";
-            for(let i=0; i<4; i++) document.getElementById(`opt${i}`).innerText = currentQ.options[i];
+            
+            const correctIndex = currentQ.correct;
+            
+            for(let i=0; i<4; i++) {
+                const optDiv = document.getElementById(`opt${i}`);
+                optDiv.innerText = currentQ.options[i];
+                
+                // 1. Reset reveal classes for every new question
+                optDiv.classList.remove('reveal-correct', 'reveal-wrong');
+                
+                // 2. If the host has stopped answers (time up or skip), reveal the truth
+                if (!data.isAcceptingAnswers) {
+                    if (i === correctIndex) {
+                        optDiv.classList.add('reveal-correct');
+                    } else {
+                        optDiv.classList.add('reveal-wrong');
+                    }
+                }
+            }
             
             if (data.startTime) runTimerUI(data.startTime, data.duration || 20, 'hostTimerBar');
             
