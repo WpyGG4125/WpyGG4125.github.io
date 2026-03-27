@@ -149,9 +149,63 @@
             opacity: 0.35;
             transform: scale(0.92);
         }
+
+        /* Creator Screen */
+        .creator-section {
+            background: var(--glass); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 1.5rem;
+        }
+        #creatorScreen .form-control {
+            background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.2); color: white;
+        }
+        #creatorScreen .form-control:focus {
+            background: rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.4);
+            box-shadow: 0 0 0 0.2rem rgba(255,255,255,0.15); color: white;
+        }
+        #creatorScreen .form-control::placeholder { color: rgba(255,255,255,0.35); }
+        #creatorScreen .form-control-color { height: 48px; padding: 4px; cursor: pointer; }
+        #creatorScreen code { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; }
+        #creatorScreen .form-check-input { cursor: pointer; }
+        #creatorScreen .form-check-label { cursor: pointer; color: white; }
+
+        /* Role Select Screen */
+        #roleSelectScreen { min-height: 80vh; display: none; flex-direction: column; justify-content: center; padding: 20px; }
+        #roleSelectScreen.active-screen { display: flex; }
+        .role-select-card {
+            background: var(--glass); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.15); border-radius: 20px;
+            padding: 2.5rem 1.5rem; cursor: pointer; transition: all 0.2s ease;
+            user-select: none;
+        }
+        .role-select-card:hover {
+            background: rgba(255,255,255,0.2); transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+        .role-select-card:active { transform: translateY(0); }
+        .role-icon { font-size: 3rem; margin-bottom: 0.75rem; }
+        #playCodeInput .form-control {
+            background: rgba(0,0,0,0.35); border-color: rgba(255,255,255,0.3);
+            color: white; letter-spacing: 0.1em; font-family: monospace; font-size: 1rem;
+        }
+        #playCodeInput .form-control::placeholder { color: rgba(255,255,255,0.3); }
+        #playCodeInput .form-control:focus {
+            background: rgba(0,0,0,0.5); border-color: rgba(255,255,255,0.5);
+            box-shadow: 0 0 0 0.2rem rgba(255,255,255,0.1); color: white;
+        }
+
+        /* Persistent Game Logo */
+        #gameLogo {
+            position: fixed; top: 15px; left: 15px; z-index: 1050;
+            display: none; pointer-events: none;
+        }
+        #gameLogoImg { max-height: 50px; border-radius: 8px; opacity: 0.9; }
     </style>
 </head>
 <body>
+
+<div id="gameLogo">
+    <img id="gameLogoImg" src="" alt="Logo">
+</div>
 
 <div id="loadingOverlay">
     <div class="spinner-border text-light mb-3" role="status"></div>
@@ -168,8 +222,43 @@
 </div>
 
 <div class="container text-center py-4">
-    <div id="lobbyScreen" class="game-screen active-screen">
-        <h1 class="display-3 fw-bold mb-4">Join the Game!</h1>
+    <div id="roleSelectScreen" class="game-screen active-screen">
+        <h1 class="display-2 fw-bold mb-2">QuizLive</h1>
+        <p class="text-white-50 mb-5 fs-5">What would you like to do?</p>
+        <div class="row g-4 justify-content-center">
+            <div class="col-12 col-md-4">
+                <div class="role-select-card text-center h-100" onclick="location.href='?role=creator'">
+                    <div class="role-icon">🎨</div>
+                    <h3 class="fw-bold">Create</h3>
+                    <p class="text-white-50 mb-0">Build a quiz &amp; customise the look</p>
+                </div>
+            </div>
+            <div class="col-12 col-md-4 d-flex flex-column">
+                <div class="role-select-card text-center" onclick="showPlayInput()">
+                    <div class="role-icon">🎮</div>
+                    <h3 class="fw-bold">Play</h3>
+                    <p class="text-white-50 mb-0">Join a game with a code</p>
+                </div>
+                <div id="playCodeInput" class="mt-3 d-none text-start px-1">
+                    <input type="text" id="gameCodeField" class="form-control form-control-lg text-center"
+                        maxlength="20" placeholder="Enter 20-character game code"
+                        onkeydown="if(event.key==='Enter')joinWithCode()" autocomplete="off" spellcheck="false">
+                    <button class="btn btn-success btn-lg w-100 mt-2" onclick="joinWithCode()">Join Game →</button>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="role-select-card text-center h-100" onclick="hostNewGame()">
+                    <div class="role-icon">📺</div>
+                    <h3 class="fw-bold">Host</h3>
+                    <p class="text-white-50 mb-0">Start a session with your saved quiz</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="lobbyScreen" class="game-screen">
+        <div id="lobbyLogo" class="mb-3"></div>
+        <h1 id="lobbyHeader" class="display-3 fw-bold mb-4">Join the Game!</h1>
         <div id="qr-code" class="mb-4"></div>
         <div class="card bg-dark text-white p-3 mb-4">
             <h3>Players Joined:</h3>
@@ -221,6 +310,104 @@
         <button class="btn btn-success btn-lg w-100" onclick="joinGame()">Join Now!</button>
     </div>
 
+    <div id="creatorScreen" class="game-screen">
+        <h1 class="display-4 fw-bold mb-2">Quiz Creator</h1>
+        <p class="text-white-50 mb-4">Build your quiz, customise the look, then launch as host.</p>
+
+        <div class="creator-section text-start mb-4">
+            <h5 class="fw-bold mb-1">Questions</h5>
+            <p class="text-white-50 small mb-2">Paste a JSON array. Each item: <code class="text-white">{"q":"…","options":["A","B","C","D"],"correct":0,"img":"url (optional)"}</code></p>
+            <textarea id="questionsInput" class="form-control" rows="14"
+                style="font-family:monospace;font-size:0.8rem;resize:vertical"
+                spellcheck="false"></textarea>
+            <div id="questionsError" class="text-danger mt-2 small d-none"></div>
+        </div>
+
+        <div class="creator-section text-start mb-4">
+            <h5 class="fw-bold mb-3">Appearance</h5>
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <label class="form-label small fw-semibold">Lobby Header Text</label>
+                    <input type="text" id="creatorHeader" class="form-control" placeholder="Join the Game!">
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label small fw-semibold">Logo URL <span class="text-white-50 fw-normal">(optional)</span></label>
+                    <input type="url" id="creatorLogo" class="form-control" placeholder="https://…">
+                </div>
+
+                <!-- Background type toggle -->
+                <div class="col-12">
+                    <label class="form-label small fw-semibold d-block mb-2">Background</label>
+                    <div class="d-flex gap-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="bgType" id="bgTypeGradient" value="gradient" checked onchange="toggleBgType()">
+                            <label class="form-check-label" for="bgTypeGradient">Gradient</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="bgType" id="bgTypeImage" value="image" onchange="toggleBgType()">
+                            <label class="form-check-label" for="bgTypeImage">Image</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gradient pickers -->
+                <div id="bgGradientSection" class="col-12">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">BG Top</label>
+                            <input type="color" id="bgColor1" class="form-control form-control-color w-100" value="#6d28d9">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">BG Bottom</label>
+                            <input type="color" id="bgColor2" class="form-control form-control-color w-100" value="#2e1065">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Image section -->
+                <div id="bgImageSection" class="col-12 d-none">
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Image URL</label>
+                            <input type="url" id="creatorBgUrl" class="form-control" placeholder="https://…" oninput="clearBgUpload()">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold mt-1">Or upload an image</label>
+                            <input type="file" id="creatorBgFile" class="form-control" accept="image/*" onchange="handleBgImageUpload(this)">
+                        </div>
+                        <div id="bgImagePreview" class="col-12 d-none align-items-center gap-2" style="display:none!important">
+                            <img id="bgPreviewImg" src="" alt="preview" style="max-height:80px;border-radius:8px;opacity:0.85">
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearBgUpload()">Remove</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Answer colours -->
+                <div class="col-6 col-sm-3">
+                    <label class="form-label small fw-semibold">Answer ▲</label>
+                    <input type="color" id="creatorRed" class="form-control form-control-color w-100" value="#ff3355">
+                </div>
+                <div class="col-6 col-sm-3">
+                    <label class="form-label small fw-semibold">Answer ◆</label>
+                    <input type="color" id="creatorBlue" class="form-control form-control-color w-100" value="#45a3e5">
+                </div>
+                <div class="col-6 col-sm-3">
+                    <label class="form-label small fw-semibold">Answer ●</label>
+                    <input type="color" id="creatorYellow" class="form-control form-control-color w-100" value="#ffca28">
+                </div>
+                <div class="col-6 col-sm-3">
+                    <label class="form-label small fw-semibold">Answer ■</label>
+                    <input type="color" id="creatorGreen" class="form-control form-control-color w-100" value="#66bb6a">
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-3 flex-wrap justify-content-center mb-5">
+            <button class="btn btn-success btn-lg px-5" onclick="saveAndLaunch()">Save &amp; Launch as Host ▶</button>
+            <button class="btn btn-outline-danger btn-sm align-self-center" onclick="clearCreatorSettings()">Clear Saved Settings</button>
+        </div>
+    </div>
+
     <div id="questionScreen" class="game-screen">
         <div id="centerRankDisplay" class="text-center">
             <h2 class="mb-4">You are in</h2>
@@ -262,18 +449,68 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const gameRef = ref(db, 'quizGame');
-    const playersRef = ref(db, 'quizGame/players');
+    let gameBasePath = 'quizGame';
+    let gameRef, playersRef;
 
     let myPlayerKey = null;
     let isAdmin = false;
 
+    // --- STORED THEME / QUESTIONS (applied before game logic, creator-safe) ---
+    function applyStoredTheme() {
+        const stored = localStorage.getItem('kahootTheme');
+        if (!stored) return;
+        try {
+            const theme = JSON.parse(stored);
+            const root = document.documentElement;
+            if (theme.bgImg) {
+                document.body.style.background = `url('${theme.bgImg}') center/cover no-repeat fixed`;
+            } else if (theme.bg) {
+                document.body.style.background = theme.bg;
+            }
+            if (theme.red)    root.style.setProperty('--kahoot-red',    theme.red);
+            if (theme.blue)   root.style.setProperty('--kahoot-blue',   theme.blue);
+            if (theme.yellow) root.style.setProperty('--kahoot-yellow', theme.yellow);
+            if (theme.green)  root.style.setProperty('--kahoot-green',  theme.green);
+        } catch(e) {}
+    }
 
-    const questions = [
+    function applyStoredMeta() {
+        const stored = localStorage.getItem('kahootMeta');
+        if (!stored) return;
+        try {
+            const meta = JSON.parse(stored);
+            if (meta.header) {
+                const h = document.getElementById('lobbyHeader');
+                if (h) h.textContent = meta.header;
+            }
+            if (meta.logo) {
+                // Large centred logo in the lobby
+                const lobbyContainer = document.getElementById('lobbyLogo');
+                if (lobbyContainer && !lobbyContainer.hasChildNodes()) {
+                    const lobbyImg = document.createElement('img');
+                    lobbyImg.src = meta.logo;
+                    lobbyImg.alt = 'Logo';
+                    lobbyImg.style.cssText = 'max-height:80px;display:block;margin:0 auto';
+                    lobbyContainer.appendChild(lobbyImg);
+                }
+                // Persistent fixed top-left logo for all game screens
+                const gameLogoImg = document.getElementById('gameLogoImg');
+                if (gameLogoImg) {
+                    gameLogoImg.src = meta.logo;
+                    document.getElementById('gameLogo').style.display = 'block';
+                }
+            }
+        } catch(e) {}
+    }
+
+    applyStoredTheme();
+
+    let questions = [
         { q: "What is the capital of France?", options: ["London", "Berlin", "Paris", "Madrid"], correct: 2, img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400" },
         { q: "Which planet is known as the Red Planet?", options: ["Earth", "Mars", "Jupiter", "Venus"], correct: 1, img: "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=400" },
         { q: "What is 5 + 7?", options: ["10", "11", "12", "13"], correct: 2, img: "https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?w=400" }
     ];
+    try { const _q = localStorage.getItem('kahootQuestions'); if (_q) questions = JSON.parse(_q); } catch(e) {}
 
     let currentQuestionIndex = 0;
     let timerInterval = null;
@@ -281,17 +518,38 @@
     // --- INITIALIZATION ---
     window.onload = () => {
         const urlParams = new URLSearchParams(window.location.search);
-        
-        // If URL has ?role=admin
-        if (urlParams.get('role') === 'admin') {
+        const role = urlParams.get('role');
+        const id   = urlParams.get('id');
+
+        // Creator mode — completely isolated, no Firebase interaction
+        if (role === 'creator') {
+            showScreen('creatorScreen');
+            initCreatorScreen();
+            return;
+        }
+
+        // Admin/host mode: must have role=admin AND a game id
+        if (role === 'admin' && id) {
             isAdmin = true;
-            generateQR();
+            startGameSession(id);
+            applyStoredMeta();
+            generateQR(id);
             document.getElementById('startBtn').classList.remove('d-none');
             listenToPlayers();
-        } else {
-            // Standard user join
-            showScreen('joinScreen');
+            showScreen('lobbyScreen');
+            return;
         }
+
+        // Player mode: arrived via QR code or entered a code (?id=XXXX, no role)
+        if (id) {
+            startGameSession(id);
+            applyStoredMeta();
+            showScreen('joinScreen');
+            return;
+        }
+
+        // Default: role selection screen
+        showScreen('roleSelectScreen');
     };
 
     function showScreen(id) {
@@ -300,9 +558,9 @@
     }
 
     // --- HOST LOGIC ---
-    function generateQR() {
+    function generateQR(gameId) {
         new QRCode(document.getElementById("qr-code"), {
-            text: window.location.href.split('?')[0], // Link to this page without admin params
+            text: window.location.href.split('?')[0] + '?id=' + gameId,
             width: 256,
             height: 256
         });
@@ -363,10 +621,24 @@
         });
     }
 
-    // Helper to get time
+    // Helper to get time (offset initialised to 0; updated after startGameSession)
     let serverOffset = 0;
-    const offsetRef = ref(db, ".info/serverTimeOffset");
-    onValue(offsetRef, (snap) => { serverOffset = snap.val() || 0; });
+
+    function generateGameId() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let id = '';
+        for (let i = 0; i < 20; i++) id += chars[Math.floor(Math.random() * chars.length)];
+        return id;
+    }
+
+    function startGameSession(gameId) {
+        gameBasePath = `quizGame_${gameId}`;
+        gameRef   = ref(db, gameBasePath);
+        playersRef = ref(db, `${gameBasePath}/players`);
+        const offsetRef = ref(db, '.info/serverTimeOffset');
+        onValue(offsetRef, (snap) => { serverOffset = snap.val() || 0; });
+        startGameListener();
+    }
 
     window.startGame = function() {
         update(gameRef, { 
@@ -460,7 +732,7 @@ window.submitAnswer = async function(choiceIndex) {
         if (!gameData.isAcceptingAnswers) return;
 
         const correctIndex = questions[currentQuestionIndex].correct;
-        const playerRef = ref(db, `quizGame/players/${myPlayerKey}`);
+        const playerRef = ref(db, `${gameBasePath}/players/${myPlayerKey}`);
 
         if (choiceIndex === correctIndex) {
             const now = Date.now() + serverOffset;
@@ -474,7 +746,7 @@ window.submitAnswer = async function(choiceIndex) {
         } else {
             document.getElementById('answerFeedback').innerHTML = `<span class='text-danger'>Wrong!</span>`;
         }
-        await set(ref(db, `quizGame/answers/q${currentQuestionIndex}/${myPlayerKey}`), choiceIndex);
+        await set(ref(db, `${gameBasePath}/answers/q${currentQuestionIndex}/${myPlayerKey}`), choiceIndex);
     } catch (e) { 
         console.error(e);
         if (loadingOverlay) loadingOverlay.style.display = 'none'; // Hide on error so they can try again if possible
@@ -484,6 +756,7 @@ window.submitAnswer = async function(choiceIndex) {
 // --- SYNC STATE ---
 let lastLoadedQuestion = -1;
 
+function startGameListener() {
 onValue(gameRef, (snapshot) => {
     const data = snapshot.val();
     if (!data) return;
@@ -581,10 +854,11 @@ onValue(gameRef, (snapshot) => {
         }
     }
 });
+} // end startGameListener
 
     async function showResultOverlay(qIdx) {
         const resOverlay = document.getElementById('resultOverlay');
-        const ansSnap = await get(ref(db, `quizGame/answers/q${qIdx}/${myPlayerKey}`));
+        const ansSnap = await get(ref(db, `${gameBasePath}/answers/q${qIdx}/${myPlayerKey}`));
         const myAns = ansSnap.val();
         const isCorrect = (myAns === questions[qIdx].correct);
 
@@ -617,6 +891,190 @@ async function showPlayerRank(isBig) {
         document.getElementById('rankNumber').innerText = rankText;
     }
 }
+
+// --- CREATOR LOGIC ---
+function initCreatorScreen() {
+    // Populate questions textarea with saved questions or the defaults as an editable template
+    const savedQ = localStorage.getItem('kahootQuestions');
+    const template = savedQ ? JSON.parse(savedQ) : [
+        { q: "What is the capital of France?", options: ["London", "Berlin", "Paris", "Madrid"], correct: 2, img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400" },
+        { q: "Which planet is known as the Red Planet?", options: ["Earth", "Mars", "Jupiter", "Venus"], correct: 1, img: "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=400" },
+        { q: "What is 5 + 7?", options: ["10", "11", "12", "13"], correct: 2, img: "https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?w=400" }
+    ];
+    document.getElementById('questionsInput').value = JSON.stringify(template, null, 2);
+
+    // Populate theme pickers with saved values
+    const savedTheme = localStorage.getItem('kahootTheme');
+    if (savedTheme) {
+        try {
+            const t = JSON.parse(savedTheme);
+            if (t.bgImg) {
+                document.getElementById('bgTypeImage').checked = true;
+                window.toggleBgType();
+                window._creatorBgImageData = t.bgImg;
+                document.getElementById('bgPreviewImg').src = t.bgImg;
+                document.getElementById('bgImagePreview').classList.remove('d-none');
+                document.getElementById('bgImagePreview').style.removeProperty('display');
+                document.getElementById('bgImagePreview').style.display = 'flex';
+            } else {
+                if (t.bg1) document.getElementById('bgColor1').value = t.bg1;
+                if (t.bg2) document.getElementById('bgColor2').value = t.bg2;
+            }
+            if (t.red)    document.getElementById('creatorRed').value    = t.red;
+            if (t.blue)   document.getElementById('creatorBlue').value   = t.blue;
+            if (t.yellow) document.getElementById('creatorYellow').value = t.yellow;
+            if (t.green)  document.getElementById('creatorGreen').value  = t.green;
+        } catch(e) {}
+    }
+
+    // Populate meta fields with saved values
+    const savedMeta = localStorage.getItem('kahootMeta');
+    if (savedMeta) {
+        try {
+            const m = JSON.parse(savedMeta);
+            if (m.header) document.getElementById('creatorHeader').value = m.header;
+            if (m.logo)   document.getElementById('creatorLogo').value   = m.logo;
+        } catch(e) {}
+    }
+}
+
+window.toggleBgType = function() {
+    const isGradient = document.getElementById('bgTypeGradient').checked;
+    document.getElementById('bgGradientSection').classList.toggle('d-none', !isGradient);
+    document.getElementById('bgImageSection').classList.toggle('d-none', isGradient);
+};
+
+window.handleBgImageUpload = function(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const maxW = 1280, maxH = 720;
+            let w = img.width, h = img.height;
+            if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+            if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            window._creatorBgImageData = canvas.toDataURL('image/jpeg', 0.75);
+            document.getElementById('creatorBgUrl').value = '';
+            document.getElementById('bgPreviewImg').src = window._creatorBgImageData;
+            const preview = document.getElementById('bgImagePreview');
+            preview.classList.remove('d-none');
+            preview.style.display = 'flex';
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+};
+
+window.clearBgUpload = function() {
+    window._creatorBgImageData = null;
+    document.getElementById('bgPreviewImg').src = '';
+    const preview = document.getElementById('bgImagePreview');
+    preview.classList.add('d-none');
+    preview.style.display = 'none';
+    document.getElementById('creatorBgFile').value = '';
+};
+
+window.hostNewGame = function() {
+    let gameId = localStorage.getItem('kahootGameId');
+    if (!gameId) {
+        gameId = generateGameId();
+        localStorage.setItem('kahootGameId', gameId);
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set('role', 'admin');
+    url.searchParams.set('id', gameId);
+    window.location.href = url.toString();
+};
+
+window.showPlayInput = function() {
+    const inp = document.getElementById('playCodeInput');
+    inp.classList.toggle('d-none');
+    if (!inp.classList.contains('d-none')) document.getElementById('gameCodeField').focus();
+};
+
+window.joinWithCode = function() {
+    const code = document.getElementById('gameCodeField').value.trim().toUpperCase();
+    if (!code) return alert('Please enter a game code.');
+    const url = new URL(window.location.href);
+    url.searchParams.delete('role');
+    url.searchParams.set('id', code);
+    window.location.href = url.toString();
+};
+
+window.saveAndLaunch = function() {
+    // Validate questions JSON
+    const qText = document.getElementById('questionsInput').value.trim();
+    let parsedQ;
+    try {
+        parsedQ = JSON.parse(qText);
+        if (!Array.isArray(parsedQ) || parsedQ.length === 0) throw new Error('Must be a non-empty array');
+        for (let i = 0; i < parsedQ.length; i++) {
+            const q = parsedQ[i];
+            if (!q.q || !Array.isArray(q.options) || q.options.length !== 4 || typeof q.correct !== 'number') {
+                throw new Error(`Question ${i + 1} needs: q (string), options (4 items), correct (number 0–3)`);
+            }
+            if (q.correct < 0 || q.correct > 3) throw new Error(`Question ${i + 1}: correct must be 0–3`);
+        }
+    } catch(e) {
+        const errEl = document.getElementById('questionsError');
+        errEl.textContent = 'Invalid: ' + e.message;
+        errEl.classList.remove('d-none');
+        return;
+    }
+    document.getElementById('questionsError').classList.add('d-none');
+
+    // Save questions
+    localStorage.setItem('kahootQuestions', JSON.stringify(parsedQ));
+
+    // Save theme
+    const isGradientBg = document.getElementById('bgTypeGradient').checked;
+    const themeData = {
+        red:    document.getElementById('creatorRed').value,
+        blue:   document.getElementById('creatorBlue').value,
+        yellow: document.getElementById('creatorYellow').value,
+        green:  document.getElementById('creatorGreen').value,
+    };
+    if (isGradientBg) {
+        const bg1 = document.getElementById('bgColor1').value;
+        const bg2 = document.getElementById('bgColor2').value;
+        themeData.bg1 = bg1; themeData.bg2 = bg2;
+        themeData.bg = `radial-gradient(circle at top right, ${bg1}, ${bg2})`;
+    } else {
+        const bgUrl = document.getElementById('creatorBgUrl').value.trim();
+        const bgData = window._creatorBgImageData || (bgUrl || null);
+        if (bgData) themeData.bgImg = bgData;
+    }
+    localStorage.setItem('kahootTheme', JSON.stringify(themeData));
+
+    // Save meta
+    localStorage.setItem('kahootMeta', JSON.stringify({
+        header: document.getElementById('creatorHeader').value,
+        logo:   document.getElementById('creatorLogo').value,
+    }));
+
+    // Generate a fresh game ID and launch as host
+    const newGameId = generateGameId();
+    localStorage.setItem('kahootGameId', newGameId);
+    const url = new URL(window.location.href);
+    url.searchParams.set('role', 'admin');
+    url.searchParams.set('id', newGameId);
+    window.location.href = url.toString();
+};
+
+window.clearCreatorSettings = function() {
+    if (confirm('Clear all saved quiz settings and revert to defaults?')) {
+        localStorage.removeItem('kahootQuestions');
+        localStorage.removeItem('kahootTheme');
+        localStorage.removeItem('kahootMeta');
+        localStorage.removeItem('kahootGameId');
+        location.reload();
+    }
+};
 
 // --- UPDATED PODIUM LOGIC WITH CONFETTI ---
 function renderFinalPodium() {
