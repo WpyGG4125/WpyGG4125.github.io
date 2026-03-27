@@ -481,10 +481,10 @@ window.submitAnswer = async function(choiceIndex) {
     }
 };
 
-    // --- SYNC STATE ---
-    let lastLoadedQuestion = -1;
+// --- SYNC STATE ---
+let lastLoadedQuestion = -1;
 
-    onValue(gameRef, (snapshot) => {
+onValue(gameRef, (snapshot) => {
     const data = snapshot.val();
     if (!data) return;
 
@@ -549,6 +549,7 @@ window.submitAnswer = async function(choiceIndex) {
         rankFooter.classList.add('d-none');
 
         if (data.state === 'playing') {
+            document.getElementById('questionText').innerText = "";
             showScreen('questionScreen');
             if (data.isAcceptingAnswers) {
                 // if (loadingOverlay) loadingOverlay.style.display = 'none';
