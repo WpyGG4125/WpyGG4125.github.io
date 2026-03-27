@@ -6,6 +6,7 @@
     <title>QuizLive - Kahoot Clone</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root {
@@ -35,17 +36,37 @@
         }
 
         /* Answer Buttons */
-        .btn-answer { 
+        .btn-answer {
             height: 140px; border-radius: 15px; border: none; font-size: 2rem;
             box-shadow: 0 6px 0 rgba(0,0,0,0.2); transition: 0.1s;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 4px;
         }
         .btn-answer:active { transform: translateY(4px); box-shadow: none; }
+        .btn-answer .btn-label { font-size: 1rem; font-weight: 600; line-height: 1.2; }
         /* .btn-answer { height: 120px; font-size: 1.5rem; font-weight: bold; border: none; color: white; border-radius: 8px; transition: transform 0.1s; } */
         /* .btn-answer:active { transform: scale(0.95); } */
         .bg-red { background-color: var(--kahoot-red); }
         .bg-blue { background-color: var(--kahoot-blue); }
         .bg-yellow { background-color: var(--kahoot-yellow); }
         .bg-green { background-color: var(--kahoot-green); }
+        .bg-orange { background-color: #f97316; }
+        .bg-teal   { background-color: #14b8a6; }
+
+        /* Multiple choice / slider UI */
+        .multi-banner {
+            background: rgba(255,255,255,0.2); border-radius: 20px;
+            padding: 5px 16px; font-size: 0.85rem; font-weight: 700; display: inline-block;
+        }
+        .btn-answer-selected {
+            outline: 4px solid white !important;
+            box-shadow: 0 0 0 7px rgba(255,255,255,0.25), 0 6px 0 rgba(0,0,0,0.2) !important;
+        }
+        .btn-answer-selected::after {
+            content: '✓'; position: absolute; top: 8px; right: 12px; font-size: 1.1rem; font-weight: 900;
+        }
+        .slider-value { font-size: 4rem; font-weight: 800; line-height: 1; }
+        #sliderContainer input[type=range] { width: 100%; height: 8px; accent-color: white; margin: 0.75rem 0; }
 
         /* Screens */
         .game-screen { display: none; padding: 20px; }
@@ -183,12 +204,22 @@
         }
         .role-select-card:active { transform: translateY(0); }
         .role-icon { font-size: 3rem; margin-bottom: 0.75rem; }
-        #playCodeInput .form-control {
-            background: rgba(0,0,0,0.35); border-color: rgba(255,255,255,0.3);
-            color: white; letter-spacing: 0.1em; font-family: monospace; font-size: 1rem;
+        /* QR Scanner Panel */
+        #qrScannerPanel {
+            background: var(--glass); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.15); border-radius: 20px;
+            padding: 1.25rem; margin-top: 0.75rem;
         }
-        #playCodeInput .form-control::placeholder { color: rgba(255,255,255,0.3); }
-        #playCodeInput .form-control:focus {
+        #qrVideo {
+            width: 100%; max-width: 280px; border-radius: 12px;
+            border: 3px solid rgba(255,255,255,0.3); display: block; margin: 0 auto;
+        }
+        #qrScannerPanel .form-control {
+            background: rgba(0,0,0,0.35); border-color: rgba(255,255,255,0.3);
+            color: white; font-family: monospace; font-size: 1rem; text-align: center;
+        }
+        #qrScannerPanel .form-control::placeholder { color: rgba(255,255,255,0.3); }
+        #qrScannerPanel .form-control:focus {
             background: rgba(0,0,0,0.5); border-color: rgba(255,255,255,0.5);
             box-shadow: 0 0 0 0.2rem rgba(255,255,255,0.1); color: white;
         }
@@ -234,16 +265,21 @@
                 </div>
             </div>
             <div class="col-12 col-md-4 d-flex flex-column">
-                <div class="role-select-card text-center" onclick="showPlayInput()">
+                <div class="role-select-card text-center" onclick="showQrScanner()">
                     <div class="role-icon">🎮</div>
                     <h3 class="fw-bold">Play</h3>
-                    <p class="text-white-50 mb-0">Join a game with a code</p>
+                    <p class="text-white-50 mb-0">Scan a QR code to join instantly</p>
                 </div>
-                <div id="playCodeInput" class="mt-3 d-none text-start px-1">
-                    <input type="text" id="gameCodeField" class="form-control form-control-lg text-center"
-                        maxlength="20" placeholder="Enter 20-character game code"
+                <div id="qrScannerPanel" class="d-none text-center">
+                    <video id="qrVideo" autoplay playsinline muted></video>
+                    <canvas id="qrCanvas" style="display:none"></canvas>
+                    <p id="qrScanStatus" class="text-white-50 small mt-2 mb-0">Point camera at a QuizLive QR code</p>
+                    <hr class="border-secondary my-3">
+                    <p class="text-white-50 small mb-2">Or enter a game code manually:</p>
+                    <input type="text" id="gameCodeField" class="form-control mb-2"
+                        maxlength="20" placeholder="6-digit PIN"
                         onkeydown="if(event.key==='Enter')joinWithCode()" autocomplete="off" spellcheck="false">
-                    <button class="btn btn-success btn-lg w-100 mt-2" onclick="joinWithCode()">Join Game →</button>
+                    <button class="btn btn-success w-100" onclick="joinWithCode()">Join Game →</button>
                 </div>
             </div>
             <div class="col-12 col-md-4">
@@ -259,7 +295,11 @@
     <div id="lobbyScreen" class="game-screen">
         <div id="lobbyLogo" class="mb-3"></div>
         <h1 id="lobbyHeader" class="display-3 fw-bold mb-4">Join the Game!</h1>
-        <div id="qr-code" class="mb-4"></div>
+        <div id="qr-code" class="mb-3"></div>
+        <div id="joinIdDisplay" class="mb-4 d-none">
+            <p class="text-white-50 mb-0 small fw-semibold" style="letter-spacing:0.1em;text-transform:uppercase">Game PIN</p>
+            <div id="joinIdNumber" class="display-2 fw-bold" style="letter-spacing:0.2em">------</div>
+        </div>
         <div class="card bg-dark text-white p-3 mb-4">
             <h3>Players Joined:</h3>
             <div id="playerList" class="d-flex flex-wrap justify-content-center"></div>
@@ -280,12 +320,8 @@
         </div>
         <img id="questionImage" src="" class="img-fluid rounded mb-3" style="max-height: 250px; display: block; margin: 0 auto;">
         <h1 id="displayQuestionText" class="display-4 fw-bold mb-5"></h1>
-        <div class="row g-4">
-            <div class="col-6"><div class="p-4 bg-red rounded-3 h3 opt-box" id="opt0"></div></div>
-            <div class="col-6"><div class="p-4 bg-blue rounded-3 h3 opt-box" id="opt1"></div></div>
-            <div class="col-6"><div class="p-4 bg-yellow rounded-3 h3 opt-box" id="opt2"></div></div>
-            <div class="col-6"><div class="p-4 bg-green rounded-3 h3 opt-box" id="opt3"></div></div>
-        </div>
+        <div id="questionTypeBanner" class="mb-2 text-center"></div>
+        <div id="hostOptionsContainer" class="row g-4"></div>
 
         <div id="postQuestionControls" class="mt-4 d-none">
             <button id="flowBtn" class="btn btn-primary btn-lg" onclick="handleGameFlow()">Proceed →</button>
@@ -316,7 +352,13 @@
 
         <div class="creator-section text-start mb-4">
             <h5 class="fw-bold mb-1">Questions</h5>
-            <p class="text-white-50 small mb-2">Paste a JSON array. Each item: <code class="text-white">{"q":"…","options":["A","B","C","D"],"correct":0,"img":"url (optional)"}</code></p>
+            <p class="text-white-50 small mb-2">Paste a JSON array. Supported types:</p>
+            <ul class="text-white-50 small mb-2" style="padding-left:1.2rem">
+                <li><strong>Single choice</strong> (default): <code class="text-white">{"q":"…","options":["A","B","C","D"],"correct":0,"img":"url (optional)"}</code></li>
+                <li><strong>True/False</strong>: <code class="text-white">{"type":"truefalse","q":"…","correct":0}</code> — 0=True, 1=False</li>
+                <li><strong>Multiple choice</strong>: <code class="text-white">{"type":"multiple","q":"…","options":["A","B","C"],"correct":[0,2]}</code></li>
+                <li><strong>Slider</strong>: <code class="text-white">{"type":"slider","q":"…","min":0,"max":100,"step":1,"correct":42,"tolerance":5}</code></li>
+            </ul>
             <textarea id="questionsInput" class="form-control" rows="14"
                 style="font-family:monospace;font-size:0.8rem;resize:vertical"
                 spellcheck="false"></textarea>
@@ -420,11 +462,20 @@
 
         <div id="playerQuestionUI">
             <h2 id="questionText" class="mb-4">Waiting...</h2>
-            <div id="answerButtonsRow" class="row g-3 d-none">
-                <div class="col-6"><button class="btn-answer bg-red w-100" onclick="submitAnswer(0)">▲</button></div>
-                <div class="col-6"><button class="btn-answer bg-blue w-100" onclick="submitAnswer(1)">◆</button></div>
-                <div class="col-6"><button class="btn-answer bg-yellow w-100" onclick="submitAnswer(2)">●</button></div>
-                <div class="col-6"><button class="btn-answer bg-green w-100" onclick="submitAnswer(3)">■</button></div>
+            <div id="multiChoiceBanner" class="d-none text-center mb-2">
+                <span class="multi-banner">⚠️ Multiple answers possible — select all that apply!</span>
+            </div>
+            <div id="answerButtonsRow" class="row g-3 d-none"></div>
+            <div id="sliderContainer" class="d-none text-center px-2 mt-2">
+                <div id="sliderValue" class="slider-value">50</div>
+                <input type="range" id="sliderInput" min="0" max="100" step="1" value="50"
+                    oninput="document.getElementById('sliderValue').textContent=this.value">
+                <div class="d-flex justify-content-between text-white-50 small">
+                    <span id="sliderMin">0</span><span id="sliderMax">100</span>
+                </div>
+            </div>
+            <div id="multiSubmitContainer" class="d-none mt-3">
+                <button class="btn btn-light btn-lg w-100" onclick="submitMultiAnswer()">Submit →</button>
             </div>
             <div id="answerFeedback" class="mt-4 h4"></div>
             <div id="playerTimerContainer" class="progress mb-4 d-none">
@@ -507,8 +558,9 @@
 
     let questions = [
         { q: "What is the capital of France?", options: ["London", "Berlin", "Paris", "Madrid"], correct: 2, img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400" },
-        { q: "Which planet is known as the Red Planet?", options: ["Earth", "Mars", "Jupiter", "Venus"], correct: 1, img: "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=400" },
-        { q: "What is 5 + 7?", options: ["10", "11", "12", "13"], correct: 2, img: "https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?w=400" }
+        { type: "truefalse", q: "The Earth is the largest planet in the Solar System.", correct: 1 },
+        { type: "multiple", q: "Which of these are programming languages?", options: ["Python", "HTML", "JavaScript", "Photoshop"], correct: [0, 2] },
+        { type: "slider", q: "How many bones does the adult human body have?", min: 100, max: 400, step: 1, correct: 206, tolerance: 10 }
     ];
     try { const _q = localStorage.getItem('kahootQuestions'); if (_q) questions = JSON.parse(_q); } catch(e) {}
 
@@ -534,6 +586,10 @@
             startGameSession(id);
             applyStoredMeta();
             generateQR(id);
+            const joinId = generateJoinId();
+            set(ref(db, `joinIds/${joinId}`), id);
+            document.getElementById('joinIdDisplay').classList.remove('d-none');
+            document.getElementById('joinIdNumber').textContent = joinId;
             document.getElementById('startBtn').classList.remove('d-none');
             listenToPlayers();
             showScreen('lobbyScreen');
@@ -566,6 +622,48 @@
         });
     }
 
+
+    function renderHostOptions(q, isAcceptingAnswers) {
+        const container = document.getElementById('hostOptionsContainer');
+        const banner    = document.getElementById('questionTypeBanner');
+        const type = q.type || 'single';
+
+        if (type === 'slider') {
+            banner.innerHTML = `<span class="multi-banner">🎚️ Number Slider</span>`;
+            const range = `${q.min ?? 0} – ${q.max ?? 100}`;
+            const tolerance = q.tolerance ? ` (±${q.tolerance})` : '';
+            container.innerHTML = `<div class="col-12 text-center py-4">
+                <div class="text-white-50 mb-3">Range: ${range} &nbsp;|&nbsp; Step: ${q.step ?? 1}</div>
+                ${!isAcceptingAnswers
+                    ? `<div class="display-1 fw-bold text-warning">${q.correct}</div>
+                       <div class="text-white-50 small mt-1">Correct answer${tolerance}</div>`
+                    : `<div class="display-2 fw-bold opacity-25">?</div>`}
+            </div>`;
+            return;
+        }
+
+        const options = type === 'truefalse' ? ['True', 'False'] : (q.options || []);
+        const correctArr = type === 'multiple'
+            ? (Array.isArray(q.correct) ? q.correct : [q.correct])
+            : [q.correct];
+        const correctSet = new Set(correctArr);
+
+        if (type === 'multiple') {
+            banner.innerHTML = `<span class="multi-banner">⚠️ Multiple correct answers</span>`;
+        } else if (type === 'truefalse') {
+            banner.innerHTML = `<span class="multi-banner">✓ True / False</span>`;
+        } else {
+            banner.innerHTML = '';
+        }
+
+        container.innerHTML = options.map((opt, i) => {
+            let cls = `p-4 ${OPT_COLORS[i % OPT_COLORS.length]} rounded-3 h3 opt-box`;
+            if (!isAcceptingAnswers) {
+                cls += correctSet.has(i) ? ' reveal-correct' : ' reveal-wrong';
+            }
+            return `<div class="col-6"><div class="${cls}">${OPT_SHAPES[i % OPT_SHAPES.length]} ${opt}</div></div>`;
+        }).join('');
+    }
 
     window.handleGameFlow = async function() {
         const gameSnap = await get(gameRef);
@@ -630,6 +728,13 @@
         for (let i = 0; i < 20; i++) id += chars[Math.floor(Math.random() * chars.length)];
         return id;
     }
+
+    function generateJoinId() {
+        return String(Math.floor(100000 + Math.random() * 900000));
+    }
+
+    const OPT_COLORS = ['bg-red','bg-blue','bg-yellow','bg-green','bg-orange','bg-teal'];
+    const OPT_SHAPES = ['▲','◆','●','■','★','✦'];
 
     function startGameSession(gameId) {
         gameBasePath = `quizGame_${gameId}`;
@@ -714,42 +819,134 @@
         document.getElementById('questionText').innerText = "Waiting for Host to start...";
     };
 
-window.submitAnswer = async function(choiceIndex) {
-    if (!canAnswer) return;
-    canAnswer = false; 
+    let selectedMultiple = new Set();
 
-    // --- RE-ACTIVATING LOADING SCREEN ---
+    function renderPlayerQuestion(q) {
+        const type = q.type || 'single';
+        const btns         = document.getElementById('answerButtonsRow');
+        const slider       = document.getElementById('sliderContainer');
+        const multiSubmit  = document.getElementById('multiSubmitContainer');
+        const multiBanner  = document.getElementById('multiChoiceBanner');
+        const questionText = document.getElementById('questionText');
+
+        btns.innerHTML = '';
+        btns.classList.add('d-none');
+        slider.classList.add('d-none');
+        multiSubmit.classList.add('d-none');
+        multiBanner.classList.add('d-none');
+
+        if (type === 'slider') {
+            const min = q.min ?? 0, max = q.max ?? 100, step = q.step ?? 1;
+            const mid = Math.round((min + max) / 2);
+            document.getElementById('sliderInput').min = min;
+            document.getElementById('sliderInput').max = max;
+            document.getElementById('sliderInput').step = step;
+            document.getElementById('sliderInput').value = mid;
+            document.getElementById('sliderValue').textContent = mid;
+            document.getElementById('sliderMin').textContent = min;
+            document.getElementById('sliderMax').textContent = max;
+            questionText.innerText = q.q; // Show question text for slider
+            slider.classList.remove('d-none');
+            multiSubmit.classList.remove('d-none');
+            return;
+        }
+
+        questionText.innerText = '';
+        const options = type === 'truefalse' ? ['True', 'False'] : (q.options || []);
+        const isMultiple = type === 'multiple';
+
+        if (isMultiple) {
+            multiBanner.classList.remove('d-none');
+            multiSubmit.classList.remove('d-none');
+        }
+
+        btns.innerHTML = options.map((opt, i) => {
+            const color = OPT_COLORS[i % OPT_COLORS.length];
+            const shape = OPT_SHAPES[i % OPT_SHAPES.length];
+            const handler = isMultiple
+                ? `toggleMultiAnswer(${i}, this)`
+                : `submitAnswer(${i})`;
+            return `<div class="col-6">
+                <button class="btn-answer ${color} w-100 position-relative" id="ansBtn${i}" onclick="${handler}">
+                    <span>${shape}</span>
+                    <span class="btn-label">${opt}</span>
+                </button>
+            </div>`;
+        }).join('');
+        btns.classList.remove('d-none');
+    }
+
+    window.toggleMultiAnswer = function(idx, btn) {
+        if (!canAnswer) return;
+        if (selectedMultiple.has(idx)) {
+            selectedMultiple.delete(idx);
+            btn.classList.remove('btn-answer-selected');
+        } else {
+            selectedMultiple.add(idx);
+            btn.classList.add('btn-answer-selected');
+        }
+    };
+
+    window.submitMultiAnswer = function() {
+        if (!canAnswer) return;
+        const type = questions[currentQuestionIndex].type || 'single';
+        if (type === 'slider') {
+            submitAnswer(Number(document.getElementById('sliderInput').value));
+        } else {
+            if (selectedMultiple.size === 0) return alert('Select at least one answer!');
+            submitAnswer([...selectedMultiple].sort((a, b) => a - b));
+        }
+    };
+
+window.submitAnswer = async function(choice) {
+    if (!canAnswer) return;
+    canAnswer = false;
+
     const loadingOverlay = document.getElementById('loadingOverlay');
     if (loadingOverlay) loadingOverlay.style.display = 'flex';
-    
     document.getElementById('playerQuestionUI').style.opacity = "0.5";
     document.getElementById('playerQuestionUI').style.pointerEvents = "none";
 
     try {
         const gameSnap = await get(gameRef);
         const gameData = gameSnap.val();
-        
         if (!gameData.isAcceptingAnswers) return;
 
-        const correctIndex = questions[currentQuestionIndex].correct;
+        const q = questions[currentQuestionIndex];
+        const type = q.type || 'single';
         const playerRef = ref(db, `${gameBasePath}/players/${myPlayerKey}`);
 
-        if (choiceIndex === correctIndex) {
+        // Determine correctness per type
+        let isCorrect = false;
+        if (type === 'multiple') {
+            // Store and compare as sorted CSV strings to avoid Firebase array coercion
+            const correctStr = [...(Array.isArray(q.correct) ? q.correct : [q.correct])].sort((a,b)=>a-b).join(',');
+            const choiceStr  = [...choice].sort((a,b)=>a-b).join(',');
+            isCorrect = choiceStr === correctStr;
+        } else if (type === 'slider') {
+            const tolerance = q.tolerance ?? 0;
+            isCorrect = Math.abs(choice - q.correct) <= tolerance;
+        } else {
+            isCorrect = choice === q.correct;
+        }
+
+        // Store answer (multiple as CSV string, others as-is)
+        const stored = type === 'multiple' ? [...choice].sort((a,b)=>a-b).join(',') : choice;
+        await set(ref(db, `${gameBasePath}/answers/q${currentQuestionIndex}/${myPlayerKey}`), stored);
+
+        if (isCorrect) {
             const now = Date.now() + serverOffset;
             const elapsed = (now - gameData.startTime) / 1000;
             const remaining = Math.max(0, (gameData.duration || 20) - elapsed);
-            // Fast Finger Bonus: Base 500 + time-based bonus
             const pointsEarned = Math.floor(500 + (remaining * 25));
-            
             await update(playerRef, { score: increment(pointsEarned) });
             document.getElementById('answerFeedback').innerHTML = `<span class='text-success'>Correct! +${pointsEarned}</span>`;
         } else {
             document.getElementById('answerFeedback').innerHTML = `<span class='text-danger'>Wrong!</span>`;
         }
-        await set(ref(db, `${gameBasePath}/answers/q${currentQuestionIndex}/${myPlayerKey}`), choiceIndex);
-    } catch (e) { 
+    } catch (e) {
         console.error(e);
-        if (loadingOverlay) loadingOverlay.style.display = 'none'; // Hide on error so they can try again if possible
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
     }
 };
 
@@ -772,25 +969,8 @@ onValue(gameRef, (snapshot) => {
             showScreen('hostQuestionScreen');
             document.getElementById('displayQuestionText').innerText = currentQ.q;
             document.getElementById('questionImage').src = currentQ.img || "";
-            
-            const correctIndex = currentQ.correct;
-            
-            for(let i=0; i<4; i++) {
-                const optDiv = document.getElementById(`opt${i}`);
-                optDiv.innerText = currentQ.options[i];
-                
-                // 1. Reset reveal classes for every new question
-                optDiv.classList.remove('reveal-correct', 'reveal-wrong');
-                
-                // 2. If the host has stopped answers (time up or skip), reveal the truth
-                if (!data.isAcceptingAnswers) {
-                    if (i === correctIndex) {
-                        optDiv.classList.add('reveal-correct');
-                    } else {
-                        optDiv.classList.add('reveal-wrong');
-                    }
-                }
-            }
+
+            renderHostOptions(currentQ, data.isAcceptingAnswers);
             
             if (data.startTime) runTimerUI(data.startTime, data.duration || 20, 'hostTimerBar');
             
@@ -817,29 +997,30 @@ onValue(gameRef, (snapshot) => {
         // Reset visibility
         btns.classList.add('d-none');
         timer.classList.add('d-none');
+        document.getElementById('sliderContainer').classList.add('d-none');
+        document.getElementById('multiSubmitContainer').classList.add('d-none');
+        document.getElementById('multiChoiceBanner').classList.add('d-none');
         centerRank.classList.remove('active-screen');
         qUI.classList.remove('d-none');
         rankFooter.classList.add('d-none');
 
         if (data.state === 'playing') {
-            document.getElementById('questionText').innerText = "";
             showScreen('questionScreen');
             if (data.isAcceptingAnswers) {
-                // if (loadingOverlay) loadingOverlay.style.display = 'none';
-                
-                btns.classList.remove('d-none');
                 timer.classList.remove('d-none');
                 resOverlay.style.display = 'none';
 
                 if (currentQuestionIndex !== lastLoadedQuestion) {
                     lastLoadedQuestion = currentQuestionIndex;
                     canAnswer = true;
+                    selectedMultiple.clear();
                     qUI.style.opacity = "1";
                     qUI.style.pointerEvents = "all";
                     document.getElementById('answerFeedback').innerText = "";
+                    renderPlayerQuestion(currentQ);
                 }
                 if (data.startTime) runTimerUI(data.startTime, data.duration || 20, 'timerBar');
-                showPlayerRank(false); 
+                showPlayerRank(false);
             } else {
                 // Time is up or host stopped answers
                 if (loadingOverlay) loadingOverlay.style.display = 'none';
@@ -860,7 +1041,21 @@ onValue(gameRef, (snapshot) => {
         const resOverlay = document.getElementById('resultOverlay');
         const ansSnap = await get(ref(db, `${gameBasePath}/answers/q${qIdx}/${myPlayerKey}`));
         const myAns = ansSnap.val();
-        const isCorrect = (myAns === questions[qIdx].correct);
+        const q = questions[qIdx];
+        const type = q.type || 'single';
+
+        let isCorrect = false;
+        if (myAns !== null && myAns !== undefined) {
+            if (type === 'multiple') {
+                const correctStr = [...(Array.isArray(q.correct) ? q.correct : [q.correct])].sort((a,b)=>a-b).join(',');
+                isCorrect = String(myAns) === correctStr;
+            } else if (type === 'slider') {
+                const tolerance = q.tolerance ?? 0;
+                isCorrect = Math.abs(Number(myAns) - q.correct) <= tolerance;
+            } else {
+                isCorrect = myAns === q.correct;
+            }
+        }
 
         resOverlay.style.display = 'flex';
         resOverlay.className = `result-overlay ${isCorrect ? 'bg-correct' : 'bg-wrong'}`;
@@ -898,8 +1093,9 @@ function initCreatorScreen() {
     const savedQ = localStorage.getItem('kahootQuestions');
     const template = savedQ ? JSON.parse(savedQ) : [
         { q: "What is the capital of France?", options: ["London", "Berlin", "Paris", "Madrid"], correct: 2, img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400" },
-        { q: "Which planet is known as the Red Planet?", options: ["Earth", "Mars", "Jupiter", "Venus"], correct: 1, img: "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=400" },
-        { q: "What is 5 + 7?", options: ["10", "11", "12", "13"], correct: 2, img: "https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?w=400" }
+        { type: "truefalse", q: "The Earth is the largest planet in the Solar System.", correct: 1 },
+        { type: "multiple", q: "Which of these are programming languages?", options: ["Python", "HTML", "JavaScript", "Photoshop"], correct: [0, 2] },
+        { type: "slider", q: "How many bones does the adult human body have?", min: 100, max: 400, step: 1, correct: 206, tolerance: 10 }
     ];
     document.getElementById('questionsInput').value = JSON.stringify(template, null, 2);
 
@@ -991,15 +1187,81 @@ window.hostNewGame = function() {
     window.location.href = url.toString();
 };
 
-window.showPlayInput = function() {
-    const inp = document.getElementById('playCodeInput');
-    inp.classList.toggle('d-none');
-    if (!inp.classList.contains('d-none')) document.getElementById('gameCodeField').focus();
+let qrStream = null;
+let qrAnimFrame = null;
+
+window.showQrScanner = function() {
+    const panel = document.getElementById('qrScannerPanel');
+    if (!panel.classList.contains('d-none')) {
+        stopQrScanner();
+        panel.classList.add('d-none');
+        return;
+    }
+    panel.classList.remove('d-none');
+    startQrScanner();
 };
 
-window.joinWithCode = function() {
-    const code = document.getElementById('gameCodeField').value.trim().toUpperCase();
-    if (!code) return alert('Please enter a game code.');
+function startQrScanner() {
+    const video = document.getElementById('qrVideo');
+    const canvas = document.getElementById('qrCanvas');
+    const status = document.getElementById('qrScanStatus');
+    video.style.display = 'block';
+    status.textContent = 'Point camera at a QuizLive QR code';
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        .then(stream => {
+            qrStream = stream;
+            video.srcObject = stream;
+            video.play();
+            video.addEventListener('loadedmetadata', function onMeta() {
+                video.removeEventListener('loadedmetadata', onMeta);
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                scanQrFrame(video, canvas, status);
+            });
+        })
+        .catch(() => {
+            status.textContent = 'Camera unavailable — use the code below.';
+            video.style.display = 'none';
+        });
+}
+
+function scanQrFrame(video, canvas, status) {
+    if (!qrStream) return;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imgData.data, imgData.width, imgData.height);
+    if (code && code.data) {
+        stopQrScanner();
+        try {
+            const parsed = new URL(code.data);
+            const id = parsed.searchParams.get('id');
+            if (id) { window.location.href = code.data; return; }
+        } catch (_) {}
+        status.textContent = 'Invalid QR code — use the code below.';
+        document.getElementById('qrVideo').style.display = 'none';
+        return;
+    }
+    qrAnimFrame = requestAnimationFrame(() => scanQrFrame(video, canvas, status));
+}
+
+function stopQrScanner() {
+    if (qrAnimFrame) { cancelAnimationFrame(qrAnimFrame); qrAnimFrame = null; }
+    if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
+}
+
+window.joinWithCode = async function() {
+    let code = document.getElementById('gameCodeField').value.trim();
+    if (!code) return alert('Please enter a game PIN or code.');
+    if (/^\d{6}$/.test(code)) {
+        try {
+            const snap = await get(ref(db, `joinIds/${code}`));
+            if (!snap.exists()) return alert('Game PIN not found. Check with your host.');
+            code = snap.val();
+        } catch(e) { return alert('Could not look up PIN. Check your connection.'); }
+    } else {
+        code = code.toUpperCase();
+    }
     const url = new URL(window.location.href);
     url.searchParams.delete('role');
     url.searchParams.set('id', code);
@@ -1015,10 +1277,33 @@ window.saveAndLaunch = function() {
         if (!Array.isArray(parsedQ) || parsedQ.length === 0) throw new Error('Must be a non-empty array');
         for (let i = 0; i < parsedQ.length; i++) {
             const q = parsedQ[i];
-            if (!q.q || !Array.isArray(q.options) || q.options.length !== 4 || typeof q.correct !== 'number') {
-                throw new Error(`Question ${i + 1} needs: q (string), options (4 items), correct (number 0–3)`);
+            const type = q.type || 'single';
+            if (!q.q) throw new Error(`Question ${i + 1}: missing "q" (question text)`);
+            if (type === 'truefalse') {
+                if (q.correct !== 0 && q.correct !== 1)
+                    throw new Error(`Question ${i + 1} (true/false): correct must be 0 (True) or 1 (False)`);
+            } else if (type === 'multiple') {
+                if (!Array.isArray(q.options) || q.options.length < 2)
+                    throw new Error(`Question ${i + 1} (multiple): needs at least 2 options`);
+                if (!Array.isArray(q.correct) || q.correct.length === 0)
+                    throw new Error(`Question ${i + 1} (multiple): correct must be a non-empty array of indices`);
+                for (const c of q.correct) {
+                    if (c < 0 || c >= q.options.length)
+                        throw new Error(`Question ${i + 1} (multiple): correct index ${c} is out of range`);
+                }
+            } else if (type === 'slider') {
+                if (typeof q.min !== 'number' || typeof q.max !== 'number' || typeof q.correct !== 'number')
+                    throw new Error(`Question ${i + 1} (slider): min, max, and correct must be numbers`);
+                if (q.min >= q.max)
+                    throw new Error(`Question ${i + 1} (slider): min must be less than max`);
+                if (q.correct < q.min || q.correct > q.max)
+                    throw new Error(`Question ${i + 1} (slider): correct must be within [min, max]`);
+            } else {
+                if (!Array.isArray(q.options) || q.options.length < 2)
+                    throw new Error(`Question ${i + 1}: needs at least 2 options`);
+                if (typeof q.correct !== 'number' || q.correct < 0 || q.correct >= q.options.length)
+                    throw new Error(`Question ${i + 1}: correct must be a valid option index (0–${q.options.length - 1})`);
             }
-            if (q.correct < 0 || q.correct > 3) throw new Error(`Question ${i + 1}: correct must be 0–3`);
         }
     } catch(e) {
         const errEl = document.getElementById('questionsError');
