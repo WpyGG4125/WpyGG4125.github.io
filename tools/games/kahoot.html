@@ -304,7 +304,10 @@
             <h3>Players Joined:</h3>
             <div id="playerList" class="d-flex flex-wrap justify-content-center"></div>
         </div>
-        <button id="startBtn" class="btn btn-light btn-lg d-none" onclick="startGame()">Start Quiz</button>
+        <div class="d-flex gap-3 justify-content-center flex-wrap">
+            <button id="startBtn" class="btn btn-light btn-lg d-none" onclick="startGame()">Start Quiz</button>
+            <button class="btn btn-outline-danger btn-sm align-self-center" onclick="resetHostSession()">Reset PIN &amp; Game ID</button>
+        </div>
     </div>
 
     <div id="hostQuestionScreen" class="game-screen">
@@ -341,9 +344,10 @@
     </div>
 
     <div id="joinScreen" class="game-screen">
-        <h2 class="mb-4">Enter Nickname</h2>
-        <input type="text" id="nicknameInput" class="form-control form-control-lg mb-3" placeholder="CoolNickname123">
-        <button class="btn btn-success btn-lg w-100" onclick="joinGame()">Join Now!</button>
+        <h2 class="mb-3">Enter Nickname</h2>
+        <input type="text" id="nicknameInput" class="form-control form-control-lg mb-3" placeholder="CoolNickname123" autocomplete="off">
+        <button class="btn btn-success btn-lg w-100 mb-2" onclick="joinGame()">Join Now!</button>
+        <button id="resetNameBtn" class="btn btn-outline-secondary btn-sm d-none" onclick="resetPlayerName()">Use a different name</button>
     </div>
 
     <div id="creatorScreen" class="game-screen">
@@ -586,7 +590,11 @@
             startGameSession(id);
             applyStoredMeta();
             generateQR(id);
-            const joinId = generateJoinId();
+            let joinId = localStorage.getItem('kahootJoinId');
+            if (!joinId) {
+                joinId = generateJoinId();
+                localStorage.setItem('kahootJoinId', joinId);
+            }
             set(ref(db, `joinIds/${joinId}`), id);
             document.getElementById('joinIdDisplay').classList.remove('d-none');
             document.getElementById('joinIdNumber').textContent = joinId;
@@ -600,6 +608,11 @@
         if (id) {
             startGameSession(id);
             applyStoredMeta();
+            const storedName = localStorage.getItem('kahootPlayerName');
+            if (storedName) {
+                document.getElementById('nicknameInput').value = storedName;
+                document.getElementById('resetNameBtn').classList.remove('d-none');
+            }
             showScreen('joinScreen');
             return;
         }
@@ -808,8 +821,9 @@
 
     // --- PLAYER LOGIC ---
     window.joinGame = function() {
-        const name = document.getElementById('nicknameInput').value;
+        const name = document.getElementById('nicknameInput').value.trim();
         if (!name) return alert("Enter a name!");
+        localStorage.setItem('kahootPlayerName', name);
         
         const newPlayer = push(playersRef);
         myPlayerKey = newPlayer.key;
@@ -1175,6 +1189,25 @@ window.clearBgUpload = function() {
     document.getElementById('creatorBgFile').value = '';
 };
 
+window.resetPlayerName = function() {
+    localStorage.removeItem('kahootPlayerName');
+    document.getElementById('nicknameInput').value = '';
+    document.getElementById('nicknameInput').focus();
+    document.getElementById('resetNameBtn').classList.add('d-none');
+};
+
+window.resetHostSession = function() {
+    if (!confirm('Generate a new game ID and PIN? Players in the current session will be disconnected.')) return;
+    const newGameId = generateGameId();
+    const newJoinId = generateJoinId();
+    localStorage.setItem('kahootGameId', newGameId);
+    localStorage.setItem('kahootJoinId', newJoinId);
+    const url = new URL(window.location.href);
+    url.searchParams.set('role', 'admin');
+    url.searchParams.set('id', newGameId);
+    window.location.href = url.toString();
+};
+
 window.hostNewGame = function() {
     let gameId = localStorage.getItem('kahootGameId');
     if (!gameId) {
@@ -1342,9 +1375,10 @@ window.saveAndLaunch = function() {
         logo:   document.getElementById('creatorLogo').value,
     }));
 
-    // Generate a fresh game ID and launch as host
+    // Generate a fresh game ID and launch as host (clear old PIN so a new one is assigned)
     const newGameId = generateGameId();
     localStorage.setItem('kahootGameId', newGameId);
+    localStorage.removeItem('kahootJoinId');
     const url = new URL(window.location.href);
     url.searchParams.set('role', 'admin');
     url.searchParams.set('id', newGameId);
@@ -1357,6 +1391,7 @@ window.clearCreatorSettings = function() {
         localStorage.removeItem('kahootTheme');
         localStorage.removeItem('kahootMeta');
         localStorage.removeItem('kahootGameId');
+        localStorage.removeItem('kahootJoinId');
         location.reload();
     }
 };
