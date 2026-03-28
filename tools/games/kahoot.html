@@ -37,12 +37,13 @@
 
         /* Answer Buttons */
         .btn-answer {
-            height: 140px; border-radius: 15px; border: none; font-size: 2rem;
-            box-shadow: 0 6px 0 rgba(0,0,0,0.2); transition: 0.1s;
+            height: 140px; border-radius: 15px; border: 2px solid rgba(255,255,255,0.18) !important;
+            font-size: 2rem;
+            box-shadow: 0 8px 0 rgba(0,0,0,0.3), 0 2px 16px rgba(0,0,0,0.25); transition: 0.1s;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            gap: 4px;
+            gap: 4px; text-shadow: 0 2px 8px rgba(0,0,0,0.45);
         }
-        .btn-answer:active { transform: translateY(4px); box-shadow: none; }
+        .btn-answer:active { transform: translateY(6px); box-shadow: 0 2px 0 rgba(0,0,0,0.3); }
         .btn-answer .btn-label { font-size: 1rem; font-weight: 600; line-height: 1.2; }
         /* .btn-answer { height: 120px; font-size: 1.5rem; font-weight: bold; border: none; color: white; border-radius: 8px; transition: transform 0.1s; } */
         /* .btn-answer:active { transform: scale(0.95); } */
@@ -71,6 +72,44 @@
         /* Screens */
         .game-screen { display: none; padding: 20px; }
         .active-screen { display: block; }
+
+        /* Frosted glass backdrop for question cards */
+        .q-backdrop {
+            background: rgba(0,0,0,0.45);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 18px;
+            padding: 1.4rem 1.8rem;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+        }
+        /* Text shadow for legibility over any background */
+        .q-text-shadow { text-shadow: 0 2px 14px rgba(0,0,0,0.7), 0 1px 3px rgba(0,0,0,0.9); }
+
+        /* Rainbow accent bar (top of host question) */
+        .q-top-accent {
+            height: 5px;
+            background: linear-gradient(90deg, var(--kahoot-red), var(--kahoot-blue), var(--kahoot-yellow), var(--kahoot-green));
+            border-radius: 3px; margin-bottom: 1.25rem; opacity: 0.8;
+        }
+        /* Subtle divider between question and options */
+        .q-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+            margin: 1.25rem 0;
+        }
+
+        /* Join screen — vertically centred */
+        #joinScreen { min-height: 80vh; display: none; flex-direction: column; justify-content: center; align-items: center; }
+        #joinScreen.active-screen { display: flex; }
+        #joinScreen .form-control {
+            background: rgba(0,0,0,0.35); border-color: rgba(255,255,255,0.3); color: white;
+        }
+        #joinScreen .form-control::placeholder { color: rgba(255,255,255,0.3); }
+        #joinScreen .form-control:focus {
+            background: rgba(0,0,0,0.5); border-color: rgba(255,255,255,0.5);
+            box-shadow: 0 0 0 0.2rem rgba(255,255,255,0.1); color: white;
+        }
         
         #qr-code canvas, #qr-code img { margin: 0 auto; border: 10px solid white; border-radius: 10px; }
         .player-badge { background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px; margin: 5px; display: inline-block; }
@@ -142,10 +181,10 @@
         /* Timer Styling */
         .timer-wrapper { display: flex; align-items: center; gap: 15px; margin-bottom: 2rem; }
         .timer-circle {
-            width: 60px; height: 60px; border-radius: 50%;
+            width: 80px; height: 80px; border-radius: 50%;
             border: 4px solid #fff; display: flex; align-items: center;
-            justify-content: center; font-weight: bold; font-size: 1.2rem;
-            background: var(--kahoot-red); flex-shrink: 0;
+            justify-content: center; font-weight: bold; font-size: 1.8rem;
+            background: grey; flex-shrink: 0;
         }
         .progress { flex-grow: 1; height: 15px !important; background: var(--glass); border-radius: 20px; }
 
@@ -304,10 +343,11 @@
             <h3>Players Joined:</h3>
             <div id="playerList" class="d-flex flex-wrap justify-content-center"></div>
         </div>
-        <div class="d-flex gap-3 justify-content-center flex-wrap">
+        <div class="d-flex gap-3 justify-content-center flex-wrap mb-3">
             <button id="startBtn" class="btn btn-light btn-lg d-none" onclick="startGame()">Start Quiz</button>
             <button class="btn btn-outline-danger btn-sm align-self-center" onclick="resetHostSession()">Reset PIN &amp; Game ID</button>
         </div>
+        <button class="btn btn-link text-white-50 small" onclick="goHome()">← Back to home</button>
     </div>
 
     <div id="hostQuestionScreen" class="game-screen">
@@ -315,15 +355,19 @@
             <button class="btn btn-sm btn-outline-warning" onclick="skipQuestion()">Skip ⏭️</button>
             <button class="btn btn-sm btn-outline-danger" onclick="quitToLobby()">Quit ❌</button>
         </div>
+        <div class="q-top-accent"></div>
         <div class="timer-wrapper">
             <div id="hostTimerCircle" class="timer-circle">20</div>
             <div class="progress">
                 <div id="hostTimerBar" class="progress-bar bg-warning" style="width: 100%"></div>
             </div>
         </div>
-        <img id="questionImage" src="" class="img-fluid rounded mb-3" style="max-height: 250px; display: block; margin: 0 auto;">
-        <h1 id="displayQuestionText" class="display-4 fw-bold mb-5"></h1>
+        <div class="q-backdrop mb-4">
+            <img id="questionImage" src="" class="img-fluid rounded mb-3" style="max-height: 220px; display: none; margin: 0 auto;">
+            <h1 id="displayQuestionText" class="display-4 fw-bold q-text-shadow mb-0"></h1>
+        </div>
         <div id="questionTypeBanner" class="mb-2 text-center"></div>
+        <div class="q-divider"></div>
         <div id="hostOptionsContainer" class="row g-4"></div>
 
         <div id="postQuestionControls" class="mt-4 d-none">
@@ -344,13 +388,21 @@
     </div>
 
     <div id="joinScreen" class="game-screen">
-        <h2 class="mb-3">Enter Nickname</h2>
-        <input type="text" id="nicknameInput" class="form-control form-control-lg mb-3" placeholder="CoolNickname123" autocomplete="off">
-        <button class="btn btn-success btn-lg w-100 mb-2" onclick="joinGame()">Join Now!</button>
-        <button id="resetNameBtn" class="btn btn-outline-secondary btn-sm d-none" onclick="resetPlayerName()">Use a different name</button>
+        <div id="joinPinSection" class="text-center mb-4 d-none">
+            <p class="text-white-50 mb-0 small fw-semibold" style="letter-spacing:0.1em;text-transform:uppercase">Game PIN</p>
+            <div id="joinPinDisplay" class="display-2 fw-bold q-text-shadow" style="letter-spacing:0.2em">------</div>
+        </div>
+        <div class="q-backdrop text-center" style="width:100%;max-width:400px">
+            <h2 class="fw-bold mb-4">Enter Nickname</h2>
+            <input type="text" id="nicknameInput" class="form-control form-control-lg mb-3 text-center" placeholder="CoolNickname123" autocomplete="off">
+            <button class="btn btn-success btn-lg w-100 mb-2" onclick="joinGame()">Join Now!</button>
+            <button id="resetNameBtn" class="btn btn-outline-secondary btn-sm w-100 d-none" onclick="resetPlayerName()">Use a different name</button>
+        </div>
+        <button class="btn btn-link text-white-50 small mt-3" onclick="goHome()">← Back to home</button>
     </div>
 
     <div id="creatorScreen" class="game-screen">
+        <button class="btn btn-link text-white-50 small ps-0 mb-2" onclick="goHome()">← Back to home</button>
         <h1 class="display-4 fw-bold mb-2">Quiz Creator</h1>
         <p class="text-white-50 mb-4">Build your quiz, customise the look, then launch as host.</p>
 
@@ -465,7 +517,12 @@
         </div>
 
         <div id="playerQuestionUI">
-            <h2 id="questionText" class="mb-4">Waiting...</h2>
+            <div id="playerTextPanel" class="q-backdrop mb-4">
+                <h2 id="questionText" class="q-text-shadow mb-0">Waiting for host to start…</h2>
+            </div>
+            <div id="leaveGameBtn" class="d-none text-center mt-3">
+                <button class="btn btn-link text-white-50 small" onclick="goHome()">← Leave game</button>
+            </div>
             <div id="multiChoiceBanner" class="d-none text-center mb-2">
                 <span class="multi-banner">⚠️ Multiple answers possible — select all that apply!</span>
             </div>
@@ -596,6 +653,7 @@
                 localStorage.setItem('kahootJoinId', joinId);
             }
             set(ref(db, `joinIds/${joinId}`), id);
+            update(gameRef, { joinId, questions });
             document.getElementById('joinIdDisplay').classList.remove('d-none');
             document.getElementById('joinIdNumber').textContent = joinId;
             document.getElementById('startBtn').classList.remove('d-none');
@@ -606,13 +664,26 @@
 
         // Player mode: arrived via QR code or entered a code (?id=XXXX, no role)
         if (id) {
-            startGameSession(id);
+            startGameSession(id, { deferListener: true });
             applyStoredMeta();
             const storedName = localStorage.getItem('kahootPlayerName');
             if (storedName) {
                 document.getElementById('nicknameInput').value = storedName;
                 document.getElementById('resetNameBtn').classList.remove('d-none');
             }
+            // Fetch game PIN and host questions from Firebase, then start listener
+            get(gameRef).then(snap => {
+                const val = snap.val();
+                if (val?.joinId) {
+                    document.getElementById('joinPinDisplay').textContent = val.joinId;
+                    document.getElementById('joinPinSection').classList.remove('d-none');
+                }
+                if (Array.isArray(val?.questions) && val.questions.length > 0) {
+                    questions = val.questions;
+                }
+            }).catch(() => {}).finally(() => {
+                startGameListener();
+            });
             showScreen('joinScreen');
             return;
         }
@@ -749,13 +820,13 @@
     const OPT_COLORS = ['bg-red','bg-blue','bg-yellow','bg-green','bg-orange','bg-teal'];
     const OPT_SHAPES = ['▲','◆','●','■','★','✦'];
 
-    function startGameSession(gameId) {
+    function startGameSession(gameId, { deferListener = false } = {}) {
         gameBasePath = `quizGame_${gameId}`;
         gameRef   = ref(db, gameBasePath);
         playersRef = ref(db, `${gameBasePath}/players`);
         const offsetRef = ref(db, '.info/serverTimeOffset');
         onValue(offsetRef, (snap) => { serverOffset = snap.val() || 0; });
-        startGameListener();
+        if (!deferListener) startGameListener();
     }
 
     window.startGame = function() {
@@ -824,13 +895,15 @@
         const name = document.getElementById('nicknameInput').value.trim();
         if (!name) return alert("Enter a name!");
         localStorage.setItem('kahootPlayerName', name);
-        
+
         const newPlayer = push(playersRef);
         myPlayerKey = newPlayer.key;
         set(newPlayer, { name: name, score: 0 });
-        
+
         showScreen('questionScreen');
-        document.getElementById('questionText').innerText = "Waiting for Host to start...";
+        document.getElementById('playerTextPanel').classList.remove('d-none');
+        document.getElementById('questionText').innerText = "Waiting for host to start…";
+        document.getElementById('leaveGameBtn').classList.remove('d-none');
     };
 
     let selectedMultiple = new Set();
@@ -842,6 +915,7 @@
         const multiSubmit  = document.getElementById('multiSubmitContainer');
         const multiBanner  = document.getElementById('multiChoiceBanner');
         const questionText = document.getElementById('questionText');
+        const textPanel    = document.getElementById('playerTextPanel');
 
         btns.innerHTML = '';
         btns.classList.add('d-none');
@@ -859,12 +933,14 @@
             document.getElementById('sliderValue').textContent = mid;
             document.getElementById('sliderMin').textContent = min;
             document.getElementById('sliderMax').textContent = max;
-            questionText.innerText = q.q; // Show question text for slider
+            questionText.innerText = q.q;
+            textPanel.classList.remove('d-none');
             slider.classList.remove('d-none');
             multiSubmit.classList.remove('d-none');
             return;
         }
 
+        textPanel.classList.add('d-none');
         questionText.innerText = '';
         const options = type === 'truefalse' ? ['True', 'False'] : (q.options || []);
         const isMultiple = type === 'multiple';
@@ -982,7 +1058,9 @@ onValue(gameRef, (snapshot) => {
         if (data.state === 'playing') {
             showScreen('hostQuestionScreen');
             document.getElementById('displayQuestionText').innerText = currentQ.q;
-            document.getElementById('questionImage').src = currentQ.img || "";
+            const qImg = document.getElementById('questionImage');
+            if (currentQ.img) { qImg.src = currentQ.img; qImg.style.display = 'block'; }
+            else { qImg.src = ''; qImg.style.display = 'none'; }
 
             renderHostOptions(currentQ, data.isAcceptingAnswers);
             
@@ -1011,6 +1089,7 @@ onValue(gameRef, (snapshot) => {
         // Reset visibility
         btns.classList.add('d-none');
         timer.classList.add('d-none');
+        document.getElementById('playerTextPanel').classList.add('d-none');
         document.getElementById('sliderContainer').classList.add('d-none');
         document.getElementById('multiSubmitContainer').classList.add('d-none');
         document.getElementById('multiChoiceBanner').classList.add('d-none');
@@ -1019,6 +1098,7 @@ onValue(gameRef, (snapshot) => {
         rankFooter.classList.add('d-none');
 
         if (data.state === 'playing') {
+            document.getElementById('leaveGameBtn').classList.add('d-none');
             showScreen('questionScreen');
             if (data.isAcceptingAnswers) {
                 timer.classList.remove('d-none');
@@ -1187,6 +1267,10 @@ window.clearBgUpload = function() {
     preview.classList.add('d-none');
     preview.style.display = 'none';
     document.getElementById('creatorBgFile').value = '';
+};
+
+window.goHome = function() {
+    window.location.href = window.location.pathname;
 };
 
 window.resetPlayerName = function() {
