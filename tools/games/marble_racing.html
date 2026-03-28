@@ -7,9 +7,12 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        body { background-color: #f8f9fa; overflow-x: hidden; }
+        body { background-color: #05070a; overflow-x: hidden; }
+
+        /* Hosting page */
+        #page-hosting { background-color: #f8f9fa; }
         #canvas-container {
-            background: #05070a; 
+            background: #05070a;
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
@@ -19,45 +22,112 @@
         }
         canvas { max-width: 100%; height: auto; }
         .leaderboard { max-height: 400px; overflow-y: auto; }
-        #qrContainer img { max-width: 180px; height: auto; border: 4px solid #fe9100; border-radius: 10px; margin-bottom: 15px; padding: 0.5rem;}
+        #qrContainer img { max-width: 180px; height: auto; border: 4px solid #fe9100; border-radius: 10px; margin-bottom: 15px; padding: 0.5rem; }
+
+        /* Shared dark UI */
+        .dark-card { background: #1a1d23; border: 1px solid #fe9100; border-radius: 15px; }
+        .dark-input { background: #0b0d17 !important; border: 1px solid #444 !important; color: white !important; }
+        .dark-input:focus { border-color: #fe9100 !important; box-shadow: none !important; }
         .btn-orange { background-color: #fe9100; color: white; border: none; }
         .btn-orange:hover { background-color: #e68200; color: white; }
+        .btn-orange:disabled { background-color: #7a4600; }
     </style>
 </head>
 <body>
 
-<div class="container py-5">
-    <div class="row text-center mb-4">
-        <div class="col">
-            <h1 class="display-4 fw-bold" style="color: #fe9100 !important;">Satellite Race: Deep Space 🛰️</h1>
-            <p class="lead">Monitoring the gauntlet. Names sync automatically from the Launch Pad.</p>
-        </div>
-    </div>
-
-    <div class="row g-4">
-        <div class="col-md-4">
-            <div class="card shadow-sm p-4">
-                <div id="qrContainer" class="text-center d-none">
-                    <div id="qrcode" class="d-flex justify-content-center"></div>
-                    <p class="text-muted small">Scan to Join the Race!</p>
-                </div>
-
-                <div class="mb-3">
-                    <label for="playerNames" class="form-label fw-bold">Active Pilots</label>
-                    <textarea class="form-control" id="playerNames" rows="4" placeholder="Waiting for check-ins..."></textarea>
-                </div>
-                <button id="startBtn" class="btn btn-orange btn-lg w-100 mb-3">Release the Marbles!</button>
-                <button id="resetBtn" class="btn btn-outline-secondary w-100 mb-2">Reset Mission</button>
-                <button id="clearBtn" class="btn btn-outline-danger btn-sm w-100 mb-2">Clear list</button>
-                <button id="qrToggleBtn" class="btn btn-info btn-sm w-100 text-white">Show QR Code</button>
-                
-                <hr>
-                <h5 class="mt-3">Mission Log (Winners)</h5>
-                <ol id="leaderboard" class="list-group list-group-numbered leaderboard"></ol>
+<!-- ===== LANDING PAGE ===== -->
+<div id="page-landing" class="d-none min-vh-100 d-flex align-items-center">
+    <div class="container py-5">
+        <div class="row text-center mb-5">
+            <div class="col">
+                <h1 class="display-4 fw-bold" style="color:#fe9100;">Rocket Race 🛰️</h1>
+                <p class="lead text-white-50">Deep Space Racing</p>
             </div>
         </div>
-        <div class="col-md-8">
-            <div id="canvas-container"></div>
+        <div class="row justify-content-center g-4">
+            <div class="col-md-4">
+                <div class="dark-card h-100 p-4 text-center">
+                    <h2 style="color:#fe9100;">🚀 Host a Race</h2>
+                    <p class="text-white-50 mb-4">Create a new race session and share the PIN with pilots.</p>
+                    <button id="hostBtn" class="btn btn-orange btn-lg w-100">Host a Race</button>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="dark-card h-100 p-4 text-center">
+                    <h2 style="color:#fe9100;">🛸 Join a Race</h2>
+                    <p class="text-white-50 mb-2">Enter the 6-digit PIN shown on the host screen.</p>
+                    <input type="text" id="joinCodeInput" class="form-control dark-input mb-3"
+                        placeholder="6-digit PIN or 20-char code"
+                        style="text-align:center; font-size:1.2rem; letter-spacing:2px;">
+                    <button id="joinBtn" class="btn btn-orange btn-lg w-100">Join Race</button>
+                    <div id="joinError" class="text-danger mt-2 d-none">Invalid PIN or code. Please try again.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== HOST PAGE ===== -->
+<div id="page-hosting" class="d-none">
+    <div class="container py-5">
+        <div class="row text-center mb-4">
+            <div class="col">
+                <h1 class="display-4 fw-bold" style="color:#fe9100;">Satellite Race: Deep Space 🛰️</h1>
+                <p class="lead">Monitoring the gauntlet. Names sync automatically from the Launch Pad.</p>
+            </div>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card shadow-sm p-4">
+                    <div class="mb-3 text-center p-2 rounded" style="background:#05070a;">
+                        <span class="text-white-50 small">Join PIN</span><br>
+                        <span id="displayPin" class="fs-2 fw-bold" style="color:#fe9100; letter-spacing:6px;">------</span>
+                    </div>
+                    <div id="qrContainer" class="text-center d-none">
+                        <div id="qrcode" class="d-flex justify-content-center"></div>
+                        <p class="text-muted small">Scan to Join the Race!</p>
+                    </div>
+                    <div class="mb-3">
+                        <label for="playerNames" class="form-label fw-bold">Active Pilots</label>
+                        <textarea class="form-control" id="playerNames" rows="4" placeholder="Waiting for check-ins..."></textarea>
+                    </div>
+                    <button id="startBtn" class="btn btn-orange btn-lg w-100 mb-3">Release the Marbles!</button>
+                    <button id="resetBtn" class="btn btn-outline-secondary w-100 mb-2">Reset Mission</button>
+                    <button id="clearBtn" class="btn btn-outline-danger btn-sm w-100 mb-2">Clear list</button>
+                    <button id="qrToggleBtn" class="btn btn-info btn-sm w-100 text-white mb-2">Show QR Code</button>
+                    <a href="marble_racing.html" class="btn btn-outline-secondary btn-sm w-100">← Back to Landing</a>
+                    <hr>
+                    <h5 class="mt-3">Mission Log (Winners)</h5>
+                    <ol id="leaderboard" class="list-group list-group-numbered leaderboard"></ol>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div id="canvas-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== JOIN PAGE ===== -->
+<div id="page-join" class="d-none min-vh-100 d-flex align-items-center">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-5 text-center">
+                <h1 class="display-5 fw-bold mb-4" style="color:#fe9100;">Pilot Check-In 🚀</h1>
+                <div class="dark-card p-4 shadow">
+                    <div id="checkinForm">
+                        <p class="mb-4 text-white">Enter your callsign to join the next deep space race!</p>
+                        <input type="text" id="pilotName" class="form-control dark-input form-control-lg mb-3" placeholder="Callsign / Name">
+                        <button id="submitBtn" class="btn btn-orange btn-lg w-100">Ignite Engines</button>
+                    </div>
+                    <div id="successArea" class="d-none">
+                        <h2 class="text-success mb-3">System Ready ✓</h2>
+                        <p class="text-white mb-4">You are on the manifest. Watch the main screen for launch!</p>
+                        <button id="changeNameBtn" class="btn btn-outline-warning w-100 mb-2">Change Callsign</button>
+                    </div>
+                </div>
+                <a href="marble_racing.html" class="btn btn-outline-secondary btn-sm mt-3 d-inline-block">← Back to Landing</a>
+            </div>
         </div>
     </div>
 </div>
@@ -65,7 +135,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, onValue, remove, push, set, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBdPDS5r4aoKcqBzJdI-cbCTCPY4VBfs0g",
@@ -79,205 +149,325 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const racingRef = ref(db, 'marble_racing');
 
-    onValue(racingRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            const nameArray = Object.values(data).map(entry => entry.name);
-            document.getElementById('playerNames').value = nameArray.join(', ');
-        }
-    });
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get('mode');
+    const gameId = params.get('id');
 
-    document.getElementById('qrToggleBtn').addEventListener('click', function() {
-        const box = document.getElementById('qrContainer');
-        box.classList.toggle('d-none');
-        this.innerText = box.classList.contains('d-none') ? "Show QR Code" : "Hide QR Code";
-    });
-
-    // MATTER.JS ENGINE SETUP
-    const { Engine, Render, Runner, Bodies, Composite, Events, Body } = Matter;
-    const engine = Engine.create();
-    engine.positionIterations = 10;
-    engine.velocityIterations = 10;
-    const world = engine.world;
-    const width = 600, worldHeight = 4000, viewHeight = 800;
-    const obstacleColor = '#ADD8E6';
-
-    const render = Render.create({
-        element: document.getElementById('canvas-container'),
-        engine: engine,
-        options: { width, height: viewHeight, wireframes: false, background: '#05070a', hasBounds: true }
-    });
-
-    Render.run(render);
-    Runner.run(Runner.create(), engine);
-
-    let sats = [], winners = [], particles = [], wheels = [], raceInProgress = false, 
-        cameraY = 0, cameraLocked = false, flippers = [], slidingDoors = [];
-
-    function createWheel(x, y) {
-        const options = { isStatic: true, render: { fillStyle: obstacleColor } };
-        const b1 = Bodies.rectangle(x, y, 180, 10, options);
-        const b2 = Bodies.rectangle(x, y, 180, 10, { ...options, angle: Math.PI / 3 });
-        const b3 = Bodies.rectangle(x, y, 180, 10, { ...options, angle: (Math.PI / 3) * 2 });
-        Composite.add(world, [b1, b2, b3]);
-        wheels.push({ bodies: [b1, b2, b3], speed: (Math.random() * 0.02 + 0.01) * (Math.random() > 0.5 ? 1 : -1) });
+    function generateRaceId() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        return Array.from({length: 20}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
     }
 
-    function buildTrack() {
-        Composite.clear(world);
-        sats = []; winners = []; particles = []; wheels = []; cameraY = 0; cameraLocked = false;
-        render.bounds.min.y = 0; render.bounds.max.y = viewHeight;
-        document.getElementById('startBtn').innerText = "Release the Marbles!";
-        document.getElementById('leaderboard').innerHTML = '';
+    function generateJoinPin() {
+        return String(Math.floor(Math.random() * 900000) + 100000);
+    }
 
-        const wallOptions = { isStatic: true, render: { fillStyle: '#1a1d23' } };
-        const dotOptions = { isStatic: true, render: { fillStyle: obstacleColor } };
-        
-        Composite.add(world, [
-            Bodies.rectangle(width/2, -10, width, 40, wallOptions),
-            Bodies.rectangle(-20, worldHeight/2, 40, worldHeight, wallOptions),
-            Bodies.rectangle(width+20, worldHeight/2, 40, worldHeight, wallOptions),
-            Bodies.rectangle(width/2, worldHeight - 30, width, 60, { isStatic: true, isSensor: true, label: 'finishLine', render: { fillStyle: '#2ecc71', opacity: 0.2 } })
-        ]);
+    // =========================================================
+    // LANDING MODE (no params)
+    // =========================================================
+    if (!mode) {
+        document.getElementById('page-landing').classList.remove('d-none');
 
-        // top pins
-        for (let r = 0; r < 10; r++) for (let c = 0; c < 11; c++) {
-            const x = (c * 50) + (r % 2 === 0 ? 25 : 50);
-            if (x < width - 25) Composite.add(world, Bodies.circle(x + 13, 150 + (r * 60), 5, dotOptions));
-        }
+        document.getElementById('hostBtn').addEventListener('click', async () => {
+            const newGameId = generateRaceId();
+            const newPin = generateJoinPin();
+            await set(ref(db, `marbleRacingPins/${newPin}`), newGameId);
+            await set(ref(db, `marble_racing_${newGameId}/pin`), newPin);
+            localStorage.setItem('marbleRacingGameId', newGameId);
+            localStorage.setItem('marbleRacingPin', newPin);
+            window.location.href = `${window.location.pathname}?mode=hosting&id=${newGameId}`;
+        });
 
-        // wheels and ramps
-        for (let y = 850; y < 1510; y += 220) {
-            createWheel(width / 2 + (Math.random() * 100 - 50), y);
-            Composite.add(world, [
-                Bodies.rectangle(110, y + 110, 250, 15, { isStatic: true, angle: 0.2, render: { fillStyle: obstacleColor } }),
-                Bodies.rectangle(490, y + 110, 250, 15, { isStatic: true, angle: -0.2, render: { fillStyle: obstacleColor } })
-            ]);
-        }
+        document.getElementById('joinBtn').addEventListener('click', async () => {
+            const input = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+            const errorDiv = document.getElementById('joinError');
+            errorDiv.classList.add('d-none');
 
-        for (let y = 1700; y < 3050; y += 450) {
-            // 1. Sliding "Air-Lock" Doors
-            const door = Bodies.rectangle(width / 2, y, 200, 20, { isStatic: true, render: { fillStyle: '#ff4757' } });
-            slidingDoors.push({ body: door, startX: width / 2, range: 150, speed: 0.002 });
-            Composite.add(world, door);
+            if (/^\d{6}$/.test(input)) {
+                const snap = await get(ref(db, `marbleRacingPins/${input}`));
+                if (snap.exists()) {
+                    window.location.href = `${window.location.pathname}?mode=join&id=${snap.val()}`;
+                } else {
+                    errorDiv.classList.remove('d-none');
+                }
+            } else if (input.length === 20) {
+                window.location.href = `${window.location.pathname}?mode=join&id=${input}`;
+            } else {
+                errorDiv.classList.remove('d-none');
+            }
+        });
 
-            // 2. Pinball Flippers (Left and Right)
-            const flipL = Bodies.rectangle(120, y + 150, 180, 20, { isStatic: true, chamfer: { radius: 10 }, render: { fillStyle: '#fe9100' } });
-            const flipR = Bodies.rectangle(width - 120, y + 150, 180, 20, { isStatic: true, chamfer: { radius: 10 }, render: { fillStyle: '#fe9100' } });
-            flippers.push({ body: flipL, angle: 0.5, side: 1 }, { body: flipR, angle: -0.5, side: -1 });
-            Composite.add(world, [flipL, flipR]);
+        document.getElementById('joinCodeInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('joinBtn').click();
+        });
 
-            // 3. Rotating Spinner
-            createWheel(width / 2, y + 250);
+    // =========================================================
+    // JOIN MODE (?mode=join&id=<gameId>)
+    // =========================================================
+    } else if (mode === 'join') {
+        if (!gameId) { window.location.href = window.location.pathname; }
+        else {
+            document.getElementById('page-join').classList.remove('d-none');
 
-            // 4. Bouncy Bumpers
-            for(let i=0; i<3; i++) {
-                Composite.add(world, Bodies.circle(150 + (i*150), y + 400, 20, { isStatic: true, restitution: 1.5, render: { fillStyle: '#00d2d3' } }));
+            const racingRef = ref(db, `marble_racing_${gameId}/players`);
+            const nameInput = document.getElementById('pilotName');
+            const submitBtn = document.getElementById('submitBtn');
+            const formArea = document.getElementById('checkinForm');
+            const successArea = document.getElementById('successArea');
+
+            const storedNameKey = `marblePilotJoined_${gameId}`;
+            const storedPushKey = `marblePilotPushKey_${gameId}`;
+            if (localStorage.getItem(storedNameKey)) showSuccess();
+
+            submitBtn.addEventListener('click', () => {
+                const name = nameInput.value.trim();
+                if (!name) return;
+                submitBtn.disabled = true;
+                push(racingRef, { name, timestamp: Date.now() }).then((ref) => {
+                    localStorage.setItem(storedNameKey, name);
+                    localStorage.setItem(storedPushKey, ref.key);
+                    showSuccess();
+                }).catch(() => { submitBtn.disabled = false; });
+            });
+
+            nameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') submitBtn.click();
+            });
+
+            document.getElementById('changeNameBtn').addEventListener('click', () => {
+                const pushKey = localStorage.getItem(storedPushKey);
+                if (pushKey) {
+                    remove(ref(db, `marble_racing_${gameId}/players/${pushKey}`));
+                }
+                localStorage.removeItem(storedNameKey);
+                localStorage.removeItem(storedPushKey);
+                nameInput.value = '';
+                submitBtn.disabled = false;
+                successArea.classList.add('d-none');
+                formArea.classList.remove('d-none');
+            });
+
+            function showSuccess() {
+                formArea.classList.add('d-none');
+                successArea.classList.remove('d-none');
             }
         }
 
-        // bottom pins
-        for (let r = 0; r < 10; r++) for (let c = 0; c < 11; c++) {
-            const x = (c * 50) + (r % 2 === 0 ? 25 : 50);
-            if (x < width - 25) Composite.add(world, Bodies.circle(x + 13, 3130 + (r * 60), 5, dotOptions));
+    // =========================================================
+    // HOSTING MODE (?mode=hosting&id=<gameId>)
+    // =========================================================
+    } else if (mode === 'hosting') {
+        if (!gameId) { window.location.href = window.location.pathname; }
+        else {
+            document.getElementById('page-hosting').classList.remove('d-none');
+            document.body.style.backgroundColor = '#f8f9fa';
+
+            const racingRef = ref(db, `marble_racing_${gameId}/players`);
+
+            // Display PIN (fetch from Firebase for reliability)
+            get(ref(db, `marble_racing_${gameId}/pin`)).then(snap => {
+                if (snap.exists()) {
+                    document.getElementById('displayPin').textContent = snap.val();
+                }
+            });
+
+            // QR code points to join page for this game
+            const joinUrl = `${window.location.origin}${window.location.pathname}?mode=join&id=${gameId}`;
+            const qrcode = new QRCode(document.getElementById("qrcode"), {
+                text: joinUrl,
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            document.getElementById('qrToggleBtn').addEventListener('click', function() {
+                const box = document.getElementById('qrContainer');
+                box.classList.toggle('d-none');
+                this.innerText = box.classList.contains('d-none') ? "Show QR Code" : "Hide QR Code";
+            });
+
+            onValue(racingRef, (snapshot) => {
+                const data = snapshot.val();
+                document.getElementById('playerNames').value = data
+                    ? Object.values(data).map(e => e.name).join(', ')
+                    : '';
+            });
+
+            document.getElementById('clearBtn').addEventListener('click', () => {
+                remove(racingRef);
+                document.getElementById('playerNames').value = '';
+            });
+
+            // --- MATTER.JS ENGINE ---
+            const { Engine, Render, Runner, Bodies, Composite, Events, Body } = Matter;
+            const engine = Engine.create();
+            engine.positionIterations = 10;
+            engine.velocityIterations = 10;
+            const world = engine.world;
+            const width = 600, worldHeight = 4000, viewHeight = 800;
+            const obstacleColor = '#ADD8E6';
+
+            const render = Render.create({
+                element: document.getElementById('canvas-container'),
+                engine: engine,
+                options: { width, height: viewHeight, wireframes: false, background: '#05070a', hasBounds: true }
+            });
+
+            Render.run(render);
+            Runner.run(Runner.create(), engine);
+
+            let sats = [], winners = [], particles = [], wheels = [], raceInProgress = false,
+                cameraY = 0, cameraLocked = false, flippers = [], slidingDoors = [];
+
+            function createWheel(x, y) {
+                const options = { isStatic: true, render: { fillStyle: obstacleColor } };
+                const b1 = Bodies.rectangle(x, y, 180, 10, options);
+                const b2 = Bodies.rectangle(x, y, 180, 10, { ...options, angle: Math.PI / 3 });
+                const b3 = Bodies.rectangle(x, y, 180, 10, { ...options, angle: (Math.PI / 3) * 2 });
+                Composite.add(world, [b1, b2, b3]);
+                wheels.push({ bodies: [b1, b2, b3], speed: (Math.random() * 0.02 + 0.01) * (Math.random() > 0.5 ? 1 : -1) });
+            }
+
+            function buildTrack() {
+                Composite.clear(world);
+                sats = []; winners = []; particles = []; wheels = []; cameraY = 0; cameraLocked = false;
+                render.bounds.min.y = 0; render.bounds.max.y = viewHeight;
+                document.getElementById('startBtn').innerText = "Release the Marbles!";
+                document.getElementById('leaderboard').innerHTML = '';
+
+                const wallOptions = { isStatic: true, render: { fillStyle: '#1a1d23' } };
+                const dotOptions = { isStatic: true, render: { fillStyle: obstacleColor } };
+
+                Composite.add(world, [
+                    Bodies.rectangle(width/2, -10, width, 40, wallOptions),
+                    Bodies.rectangle(-20, worldHeight/2, 40, worldHeight, wallOptions),
+                    Bodies.rectangle(width+20, worldHeight/2, 40, worldHeight, wallOptions),
+                    Bodies.rectangle(width/2, worldHeight - 30, width, 60, { isStatic: true, isSensor: true, label: 'finishLine', render: { fillStyle: '#2ecc71', opacity: 0.2 } })
+                ]);
+
+                // top pins
+                for (let r = 0; r < 10; r++) for (let c = 0; c < 11; c++) {
+                    const x = (c * 50) + (r % 2 === 0 ? 25 : 50);
+                    if (x < width - 25) Composite.add(world, Bodies.circle(x + 13, 150 + (r * 60), 5, dotOptions));
+                }
+
+                // wheels and ramps
+                for (let y = 850; y < 1510; y += 220) {
+                    createWheel(width / 2 + (Math.random() * 100 - 50), y);
+                    Composite.add(world, [
+                        Bodies.rectangle(110, y + 110, 250, 15, { isStatic: true, angle: 0.2, render: { fillStyle: obstacleColor } }),
+                        Bodies.rectangle(490, y + 110, 250, 15, { isStatic: true, angle: -0.2, render: { fillStyle: obstacleColor } })
+                    ]);
+                }
+
+                for (let y = 1700; y < 3050; y += 450) {
+                    // Sliding "Air-Lock" Doors
+                    const door = Bodies.rectangle(width / 2, y, 200, 20, { isStatic: true, render: { fillStyle: '#ff4757' } });
+                    slidingDoors.push({ body: door, startX: width / 2, range: 150, speed: 0.002 });
+                    Composite.add(world, door);
+
+                    // Pinball Flippers
+                    const flipL = Bodies.rectangle(120, y + 150, 180, 20, { isStatic: true, chamfer: { radius: 10 }, render: { fillStyle: '#fe9100' } });
+                    const flipR = Bodies.rectangle(width - 120, y + 150, 180, 20, { isStatic: true, chamfer: { radius: 10 }, render: { fillStyle: '#fe9100' } });
+                    flippers.push({ body: flipL, angle: 0.5, side: 1 }, { body: flipR, angle: -0.5, side: -1 });
+                    Composite.add(world, [flipL, flipR]);
+
+                    // Rotating Spinner
+                    createWheel(width / 2, y + 250);
+
+                    // Bouncy Bumpers
+                    for (let i = 0; i < 3; i++) {
+                        Composite.add(world, Bodies.circle(150 + (i*150), y + 400, 20, { isStatic: true, restitution: 1.5, render: { fillStyle: '#00d2d3' } }));
+                    }
+                }
+
+                // bottom pins
+                for (let r = 0; r < 10; r++) for (let c = 0; c < 11; c++) {
+                    const x = (c * 50) + (r % 2 === 0 ? 25 : 50);
+                    if (x < width - 25) Composite.add(world, Bodies.circle(x + 13, 3130 + (r * 60), 5, dotOptions));
+                }
+            }
+
+            Events.on(engine, 'beforeUpdate', () => {
+                const time = Date.now();
+                wheels.forEach(w => w.bodies.forEach(b => Body.setAngle(b, b.angle + w.speed)));
+                slidingDoors.forEach(d => {
+                    const moveX = d.startX + Math.sin(time * d.speed) * d.range;
+                    Body.setPosition(d.body, { x: moveX, y: d.body.position.y });
+                });
+                flippers.forEach(f => {
+                    const osc = Math.sin(time * 0.01) * 0.8;
+                    Body.setAngle(f.body, f.angle + (osc * f.side));
+                });
+                if (raceInProgress && !cameraLocked) {
+                    let lowY = 0; sats.forEach(r => { if (r.position.y > lowY) lowY = r.position.y; });
+                    if (lowY > viewHeight / 2) {
+                        cameraY = lowY - viewHeight / 2;
+                        if (cameraY > worldHeight - viewHeight) { cameraY = worldHeight - viewHeight; cameraLocked = true; }
+                        render.bounds.min.y = cameraY; render.bounds.max.y = cameraY + viewHeight;
+                    }
+                }
+            });
+
+            Events.on(engine, 'collisionStart', (e) => {
+                e.pairs.forEach(p => {
+                    const r = p.bodyA.label === 'finishLine' ? p.bodyB : (p.bodyB.label === 'finishLine' ? p.bodyA : null);
+                    if (r && r.circleRadius && !winners.includes(r.label)) {
+                        winners.push(r.label); r.isFlying = true; r.collisionFilter.mask = 0;
+                        if (winners.length === 1) document.getElementById('startBtn').innerText = "Launched!";
+                        updateLeaderboard();
+                    }
+                });
+            });
+
+            Events.on(render, 'afterRender', () => {
+                const ctx = render.context;
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    let p = particles[i]; p.opacity -= 0.02; p.y += 2;
+                    if (p.opacity <= 0) particles.splice(i, 1);
+                    else { ctx.beginPath(); ctx.arc(p.x, p.y - cameraY, p.size, 0, Math.PI * 2); ctx.fillStyle = `rgba(0, ${80 + 175 * p.opacity}, 255, ${p.opacity})`; ctx.fill(); }
+                }
+                ctx.globalAlpha = 1; ctx.fillStyle = "white";
+                sats.forEach(r => {
+                    const { x, y } = r.position; const drawY = y - cameraY;
+                    if (r.isFlying) { Body.setAngle(r, 0); Body.setVelocity(r, { x: 0, y: -18 }); particles.push({ x, y, size: Math.random() * 12 + 6, opacity: 1 }); }
+                    ctx.save(); ctx.translate(x, drawY);
+                    ctx.rotate(r.isFlying ? -0.8 : r.angle + Math.PI);
+                    ctx.font = "32px serif"; ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText(r.isFlying ? "🚀" : "🛰️", 0, 0);
+                    ctx.restore();
+                    ctx.font = "bold 13px Arial"; ctx.fillText(r.label, x, drawY - 35);
+                });
+            });
+
+            function updateLeaderboard() {
+                document.getElementById('leaderboard').innerHTML = winners.map((n, i) =>
+                    `<li class="list-group-item d-flex justify-content-between align-items-center ${i===0?'list-group-item-success':''}">${n} ${i===0?'🏅':''}</li>`
+                ).join('');
+            }
+
+            document.getElementById('startBtn').addEventListener('click', () => {
+                const names = document.getElementById('playerNames').value.split(',').map(n => n.trim()).filter(n => n !== "");
+                if (names.length === 0 || raceInProgress) return;
+                raceInProgress = true; document.getElementById('startBtn').innerText = "Launching...";
+                names.forEach(n => {
+                    const r = Bodies.circle(width/2 + (Math.random()*100-50), 50, 15, { restitution: 0.4, label: n, isFlying: false, render: { opacity: 0 } });
+                    sats.push(r); Composite.add(world, r);
+                });
+            });
+
+            document.getElementById('resetBtn').addEventListener('click', () => {
+                raceInProgress = false;
+                buildTrack();
+            });
+
+            buildTrack();
         }
     }
-
-    Events.on(engine, 'beforeUpdate', () => {
-        const time = Date.now();
-        wheels.forEach(w => w.bodies.forEach(b => Body.setAngle(b, b.angle + w.speed)));
-        slidingDoors.forEach(d => {
-            const moveX = d.startX + Math.sin(time * d.speed) * d.range;
-            Body.setPosition(d.body, { x: moveX, y: d.body.position.y });
-        });
-        flippers.forEach(f => {
-            const osc = Math.sin(time * 0.01) * 0.8; 
-            Body.setAngle(f.body, f.angle + (osc * f.side));
-        });
-        if (raceInProgress && !cameraLocked) {
-            let lowY = 0; sats.forEach(r => { if (r.position.y > lowY) lowY = r.position.y; });
-            if (lowY > viewHeight / 2) {
-                cameraY = lowY - viewHeight / 2;
-                if (cameraY > worldHeight - viewHeight) { cameraY = worldHeight - viewHeight; cameraLocked = true; }
-                render.bounds.min.y = cameraY; render.bounds.max.y = cameraY + viewHeight;
-            }
-        }
-    });
-
-    Events.on(engine, 'collisionStart', (e) => {
-        e.pairs.forEach(p => {
-            const r = p.bodyA.label === 'finishLine' ? p.bodyB : (p.bodyB.label === 'finishLine' ? p.bodyA : null);
-            if (r && r.circleRadius && !winners.includes(r.label)) {
-                winners.push(r.label); r.isFlying = true; r.collisionFilter.mask = 0;
-                if (winners.length === 1) document.getElementById('startBtn').innerText = "Launched!";
-                updateLeaderboard();
-            }
-        });
-    });
-
-    Events.on(render, 'afterRender', () => {
-        const ctx = render.context;
-        for (let i = particles.length - 1; i >= 0; i--) {
-            let p = particles[i]; p.opacity -= 0.02; p.y += 2;
-            if (p.opacity <= 0) particles.splice(i, 1);
-            else { ctx.beginPath(); ctx.arc(p.x, p.y - cameraY, p.size, 0, Math.PI * 2); ctx.fillStyle = `rgba(0, ${80 + 175 * p.opacity}, 255, ${p.opacity})`; ctx.fill(); }
-        }
-        ctx.globalAlpha = 1; ctx.fillStyle = "white";
-        sats.forEach(r => {
-            const { x, y } = r.position; const drawY = y - cameraY;
-            if (r.isFlying) { Body.setAngle(r, 0); Body.setVelocity(r, { x: 0, y: -18 }); particles.push({ x, y, size: Math.random() * 12 + 6, opacity: 1 }); }
-            ctx.save(); ctx.translate(x, drawY);
-            ctx.rotate(r.isFlying ? -0.8 : r.angle + Math.PI);
-            ctx.font = "32px serif"; ctx.textAlign = "center"; 
-            ctx.textBaseline = "middle"; 
-            ctx.fillText(r.isFlying ? "🚀" : "🛰️", 0, 0);
-            ctx.restore();
-            ctx.font = "bold 13px Arial"; ctx.fillText(r.label, x, drawY - 35);
-        });
-    });
-
-    function updateLeaderboard() {
-        document.getElementById('leaderboard').innerHTML = winners.map((n, i) => `<li class="list-group-item d-flex justify-content-between align-items-center ${i===0?'list-group-item-success':''}">${n} ${i===0?'🏅':''}</li>`).join('');
-    }
-
-    document.getElementById('startBtn').addEventListener('click', () => {
-        const names = document.getElementById('playerNames').value.split(',').map(n => n.trim()).filter(n => n !== "");
-        if (names.length === 0 || raceInProgress) return;
-        raceInProgress = true; document.getElementById('startBtn').innerText = "Launching...";
-        names.forEach(n => {
-            const r = Bodies.circle(width/2 + (Math.random()*100-50), 50, 15, { restitution: 0.4, label: n, isFlying: false, render: { opacity: 0 } });
-            sats.push(r); Composite.add(world, r);
-        });
-    });
-
-    document.getElementById('resetBtn').addEventListener('click', () => { 
-        raceInProgress = false; 
-        buildTrack(); 
-    });
-    document.getElementById('clearBtn').addEventListener('click', () => { 
-        remove(racingRef);
-        document.getElementById('playerNames').value = '';
-    });
-
-    const qrcode = new QRCode(document.getElementById("qrcode"), {
-        text: window.location.href,
-        width: 200,
-        height: 200,
-        colorDark : "#000000",
-        colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.H
-    });
-
-    // Function to update the QR code based on the toggle state
-    window.updateQR = function() {
-        const finalUrl = window.location.href.split('.html')[0] + '_register.html';
-        qrcode.makeCode(finalUrl);
-    };
-
-    window.updateQR();
-    buildTrack();
 </script>
 </body>
 </html>

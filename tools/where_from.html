@@ -50,11 +50,12 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        const mapRef = ref(db, 'map');
 
         // On page load
         const urlParams = new URLSearchParams(window.location.search);
         const nameType = urlParams.get('name');
+        const sessionId = urlParams.get('id');
+        const mapRef = ref(db, sessionId ? `map_${sessionId}` : 'map');
 
         let map;
         let userId = localStorage.getItem('map_user_id') || 'user_' + Math.random().toString(36).substr(2, 9);
@@ -80,10 +81,12 @@
                 gestureHandling: "greedy"     // Easier mobile zooming
             });
 
+            const userMapPath = sessionId ? `map_${sessionId}/${userId}` : `map/${userId}`;
+
             if (nameType) {
                 map.addListener("click", (event) => {
                     if (nameType && nameType.trim() !== "") {
-                        set(ref(db, 'map/' + userId), {
+                        set(ref(db, userMapPath), {
                             name: nameType,
                             lat: event.latLng.lat(),
                             lng: event.latLng.lng()
@@ -94,7 +97,7 @@
                 map.addListener("click", (event) => {
                     const userName = prompt("Please enter your name:");
                     if (userName && userName.trim() !== "") {
-                        set(ref(db, 'map/' + userId), {
+                        set(ref(db, userMapPath), {
                             name: userName,
                             lat: event.latLng.lat(),
                             lng: event.latLng.lng()

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuizLive - Kahoot Clone</title>
+    <title>WQuiz</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
@@ -66,8 +66,39 @@
         .btn-answer-selected::after {
             content: '✓'; position: absolute; top: 8px; right: 12px; font-size: 1.1rem; font-weight: 900;
         }
-        .slider-value { font-size: 4rem; font-weight: 800; line-height: 1; }
-        #sliderContainer input[type=range] { width: 100%; height: 8px; accent-color: white; margin: 0.75rem 0; }
+        .number-saved { color: #4ade80; font-weight: 600; }
+        .number-error { color: #f87171; font-weight: 600; }
+        #numberInput { background: rgba(255,255,255,0.15) !important; border: 2px solid rgba(255,255,255,0.35) !important; color: #fff !important; font-size: 2rem; font-weight: 700; border-radius: 12px !important; text-align: center; }
+        #numberInput::placeholder { color: rgba(255,255,255,0.4) !important; font-size: 1rem; font-weight: 400; }
+        #numberInput:focus { background: rgba(255,255,255,0.22) !important; border-color: rgba(255,255,255,0.7) !important; box-shadow: none !important; }
+
+        /* Slide type */
+        .slide-pill {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 50px;
+            padding: 4px 14px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.7);
+        }
+        .slide-body-text {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: rgba(255,255,255,0.85);
+            white-space: pre-wrap;
+        }
+        .host-slide-body {
+            font-size: 1.25rem;
+            line-height: 1.7;
+            color: rgba(255,255,255,0.85);
+            text-align: center;
+            padding: 8px 0 4px;
+            white-space: pre-wrap;
+        }
 
         /* Screens */
         .game-screen { display: none; padding: 20px; }
@@ -112,7 +143,56 @@
         }
         
         #qr-code canvas, #qr-code img { margin: 0 auto; border: 10px solid white; border-radius: 10px; }
-        .player-badge { background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px; margin: 5px; display: inline-block; }
+        #playersSection {
+            background: rgba(0,0,0,0.45);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 18px;
+            padding: 20px 24px 16px;
+        }
+        #playersSection h3 {
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 14px;
+        }
+        #playerList {
+            gap: 10px;
+        }
+        .player-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50px;
+            padding: 6px 14px 6px 6px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #fff;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            animation: badgePop 0.25s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+        .player-badge .badge-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 800;
+            flex-shrink: 0;
+            color: rgba(0,0,0,0.7);
+        }
+        @keyframes badgePop {
+            from { opacity: 0; transform: scale(0.7); }
+            to   { opacity: 1; transform: scale(1); }
+        }
 
         /* Timer styling */
         .progress { height: 20px; background-color: rgba(255,255,255,0.2); border-radius: 10px; overflow: hidden; }
@@ -293,7 +373,7 @@
 
 <div class="container text-center py-4">
     <div id="roleSelectScreen" class="game-screen active-screen">
-        <h1 class="display-2 fw-bold mb-2">QuizLive</h1>
+        <h1 class="display-2 fw-bold mb-2">WQuiz</h1>
         <p class="text-white-50 mb-5 fs-5">What would you like to do?</p>
         <div class="row g-4 justify-content-center">
             <div class="col-12 col-md-4">
@@ -312,7 +392,7 @@
                 <div id="qrScannerPanel" class="d-none text-center">
                     <video id="qrVideo" autoplay playsinline muted></video>
                     <canvas id="qrCanvas" style="display:none"></canvas>
-                    <p id="qrScanStatus" class="text-white-50 small mt-2 mb-0">Point camera at a QuizLive QR code</p>
+                    <p id="qrScanStatus" class="text-white-50 small mt-2 mb-0">Point camera at a WQuiz QR code</p>
                     <hr class="border-secondary my-3">
                     <p class="text-white-50 small mb-2">Or enter a game code manually:</p>
                     <input type="text" id="gameCodeField" class="form-control mb-2"
@@ -339,8 +419,8 @@
             <p class="text-white-50 mb-0 small fw-semibold" style="letter-spacing:0.1em;text-transform:uppercase">Game PIN</p>
             <div id="joinIdNumber" class="display-2 fw-bold" style="letter-spacing:0.2em">------</div>
         </div>
-        <div class="card bg-dark text-white p-3 mb-4">
-            <h3>Players Joined:</h3>
+        <div id="playersSection" class="mb-4 w-100" style="max-width:560px;margin-left:auto;margin-right:auto;">
+            <h3><span id="playerCount">0</span> Players Joined</h3>
             <div id="playerList" class="d-flex flex-wrap justify-content-center"></div>
         </div>
         <div class="d-flex gap-3 justify-content-center flex-wrap mb-3">
@@ -356,7 +436,7 @@
             <button class="btn btn-sm btn-outline-danger" onclick="quitToLobby()">Quit ❌</button>
         </div>
         <div class="q-top-accent"></div>
-        <div class="timer-wrapper">
+        <div id="hostTimerWrapper" class="timer-wrapper">
             <div id="hostTimerCircle" class="timer-circle">20</div>
             <div class="progress">
                 <div id="hostTimerBar" class="progress-bar bg-warning" style="width: 100%"></div>
@@ -413,7 +493,8 @@
                 <li><strong>Single choice</strong> (default): <code class="text-white">{"q":"…","options":["A","B","C","D"],"correct":0,"img":"url (optional)"}</code></li>
                 <li><strong>True/False</strong>: <code class="text-white">{"type":"truefalse","q":"…","correct":0}</code> — 0=True, 1=False</li>
                 <li><strong>Multiple choice</strong>: <code class="text-white">{"type":"multiple","q":"…","options":["A","B","C"],"correct":[0,2]}</code></li>
-                <li><strong>Slider</strong>: <code class="text-white">{"type":"slider","q":"…","min":0,"max":100,"step":1,"correct":42,"tolerance":5}</code></li>
+                <li><strong>Number</strong>: <code class="text-white">{"type":"number","q":"…","min":0,"max":100,"step":1,"correct":42,"tolerance":5}</code> — player types a number; auto-submitted; tolerance is optional (default 0)</li>
+                <li><strong>Presentation slide</strong>: <code class="text-white">{"type":"slide","q":"Title","img":"url (optional)","body":"Optional paragraph text"}</code> — no timer, no answers, skips scoreboard</li>
             </ul>
             <textarea id="questionsInput" class="form-control" rows="14"
                 style="font-family:monospace;font-size:0.8rem;resize:vertical"
@@ -501,7 +582,7 @@
         </div>
 
         <div class="d-flex gap-3 flex-wrap justify-content-center mb-5">
-            <button class="btn btn-success btn-lg px-5" onclick="saveAndLaunch()">Save &amp; Launch as Host ▶</button>
+            <button id="createGameBtn" class="btn btn-success btn-lg px-5" onclick="saveAndLaunch()">Save &amp; Launch as Host ▶</button>
             <button class="btn btn-outline-danger btn-sm align-self-center" onclick="clearCreatorSettings()">Clear Saved Settings</button>
         </div>
     </div>
@@ -520,6 +601,12 @@
             <div id="playerTextPanel" class="q-backdrop mb-4">
                 <h2 id="questionText" class="q-text-shadow mb-0">Waiting for host to start…</h2>
             </div>
+            <div id="slidePlayerView" class="d-none q-backdrop mb-4 text-center">
+                <div class="slide-pill mb-3">📖 Presentation Slide</div>
+                <h2 id="slidePlayerTitle" class="q-text-shadow fw-bold mb-3"></h2>
+                <img id="slidePlayerImg" src="" class="img-fluid rounded mb-3" style="max-height:220px;display:none;margin:0 auto;">
+                <p id="slidePlayerBody" class="slide-body-text mb-0" style="display:none"></p>
+            </div>
             <div id="leaveGameBtn" class="d-none text-center mt-3">
                 <button class="btn btn-link text-white-50 small" onclick="goHome()">← Leave game</button>
             </div>
@@ -527,12 +614,16 @@
                 <span class="multi-banner">⚠️ Multiple answers possible — select all that apply!</span>
             </div>
             <div id="answerButtonsRow" class="row g-3 d-none"></div>
-            <div id="sliderContainer" class="d-none text-center px-2 mt-2">
-                <div id="sliderValue" class="slider-value">50</div>
-                <input type="range" id="sliderInput" min="0" max="100" step="1" value="50"
-                    oninput="document.getElementById('sliderValue').textContent=this.value">
-                <div class="d-flex justify-content-between text-white-50 small">
-                    <span id="sliderMin">0</span><span id="sliderMax">100</span>
+            <div id="sliderContainer" class="d-none">
+                <div class="q-backdrop text-center" style="max-width:380px;margin:0 auto;padding:20px 24px 16px;">
+                    <p class="text-white-50 small mb-3 mb-0">
+                        Enter a number between <strong id="sliderMin" class="text-white">0</strong> and <strong id="sliderMax" class="text-white">100</strong>
+                    </p>
+                    <input type="number" id="numberInput"
+                        class="form-control form-control-lg mt-3"
+                        placeholder="?" autocomplete="off"
+                        oninput="onNumberInput()">
+                    <div id="numberFeedback" class="mt-3 fw-semibold" style="min-height:1.4rem;font-size:0.95rem"></div>
                 </div>
             </div>
             <div id="multiSubmitContainer" class="d-none mt-3">
@@ -621,9 +712,12 @@
         { q: "What is the capital of France?", options: ["London", "Berlin", "Paris", "Madrid"], correct: 2, img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400" },
         { type: "truefalse", q: "The Earth is the largest planet in the Solar System.", correct: 1 },
         { type: "multiple", q: "Which of these are programming languages?", options: ["Python", "HTML", "JavaScript", "Photoshop"], correct: [0, 2] },
-        { type: "slider", q: "How many bones does the adult human body have?", min: 100, max: 400, step: 1, correct: 206, tolerance: 10 }
+        { type: "number", q: "How many bones does the adult human body have?", min: 100, max: 400, step: 1, correct: 206, tolerance: 10 }
     ];
-    try { const _q = localStorage.getItem('kahootQuestions'); if (_q) questions = JSON.parse(_q); } catch(e) {}
+    function normaliseQuestions(arr) {
+        return arr.map(q => q.type === 'slider' ? { ...q, type: 'number' } : q);
+    }
+    try { const _q = localStorage.getItem('kahootQuestions'); if (_q) questions = normaliseQuestions(JSON.parse(_q)); } catch(e) {}
 
     let currentQuestionIndex = 0;
     let timerInterval = null;
@@ -679,7 +773,7 @@
                     document.getElementById('joinPinSection').classList.remove('d-none');
                 }
                 if (Array.isArray(val?.questions) && val.questions.length > 0) {
-                    questions = val.questions;
+                    questions = normaliseQuestions(val.questions);
                 }
             }).catch(() => {}).finally(() => {
                 startGameListener();
@@ -712,8 +806,17 @@
         const banner    = document.getElementById('questionTypeBanner');
         const type = q.type || 'single';
 
-        if (type === 'slider') {
-            banner.innerHTML = `<span class="multi-banner">🎚️ Number Slider</span>`;
+        if (type === 'slide') {
+            banner.innerHTML = `<span class="multi-banner">📖 Presentation Slide</span>`;
+            container.innerHTML = `<div class="col-12 text-center py-2">
+                ${q.img ? `<img src="${q.img}" class="img-fluid rounded mb-4" style="max-height:320px;margin:0 auto;display:block;box-shadow:0 8px 32px rgba(0,0,0,0.4)">` : ''}
+                ${q.body ? `<p class="host-slide-body">${q.body}</p>` : ''}
+            </div>`;
+            return;
+        }
+
+        if (type === 'number') {
+            banner.innerHTML = `<span class="multi-banner">🔢 Number Question</span>`;
             const range = `${q.min ?? 0} – ${q.max ?? 100}`;
             const tolerance = q.tolerance ? ` (±${q.tolerance})` : '';
             container.innerHTML = `<div class="col-12 text-center py-4">
@@ -754,16 +857,27 @@
         const data = gameSnap.val();
 
         if (data.state === 'playing') {
-            update(gameRef, { state: 'scoreboard', isAcceptingAnswers: false });
+            const currentQ = questions[data.currentQuestion || 0];
+            if ((currentQ?.type || 'single') === 'slide') {
+                // Slides skip the scoreboard — advance directly to the next question
+                const nextIdx = (data.currentQuestion || 0) + 1;
+                if (nextIdx < questions.length) {
+                    update(gameRef, { state: 'playing', currentQuestion: nextIdx, startTime: serverTimestamp(), duration: 20, isAcceptingAnswers: true });
+                } else {
+                    update(gameRef, { state: 'final' });
+                }
+            } else {
+                update(gameRef, { state: 'scoreboard', isAcceptingAnswers: false });
+            }
         } else if (data.state === 'scoreboard') {
             const nextIdx = (data.currentQuestion || 0) + 1;
             if (nextIdx < questions.length) {
-                update(gameRef, { 
+                update(gameRef, {
                     state: 'playing',
-                    currentQuestion: nextIdx, 
-                    startTime: serverTimestamp(), // Reset timer for next question
+                    currentQuestion: nextIdx,
+                    startTime: serverTimestamp(),
                     duration: 20,
-                    isAcceptingAnswers: true 
+                    isAcceptingAnswers: true
                 });
             } else {
                 update(gameRef, { state: 'final' });
@@ -790,16 +904,22 @@
         }, { onlyOnce: true });
     }
 
+    const AVATAR_COLORS = ['#f97316','#14b8a6','#6d28d9','#e11d48','#0ea5e9','#16a34a','#d97706','#7c3aed'];
     function listenToPlayers() {
         onValue(playersRef, (snapshot) => {
             const list = document.getElementById('playerList');
             list.innerHTML = "";
             const data = snapshot.val();
-            if (data) {
-                Object.values(data).forEach(p => {
-                    list.innerHTML += `<span class="player-badge">${p.name}</span>`;
-                });
-            }
+            const players = data ? Object.values(data) : [];
+            document.getElementById('playerCount').textContent = players.length;
+            players.forEach((p, i) => {
+                const initials = p.name.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0,2);
+                const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+                list.innerHTML += `<span class="player-badge">
+                    <span class="badge-avatar" style="background:${color}">${initials}</span>
+                    ${p.name}
+                </span>`;
+            });
         });
     }
 
@@ -907,6 +1027,8 @@
     };
 
     let selectedMultiple = new Set();
+    let numberDebounceTimer = null;
+    const scoredSliderQuestions = new Set();
 
     function renderPlayerQuestion(q) {
         const type = q.type || 'single';
@@ -916,27 +1038,39 @@
         const multiBanner  = document.getElementById('multiChoiceBanner');
         const questionText = document.getElementById('questionText');
         const textPanel    = document.getElementById('playerTextPanel');
+        const slideView    = document.getElementById('slidePlayerView');
 
         btns.innerHTML = '';
         btns.classList.add('d-none');
         slider.classList.add('d-none');
         multiSubmit.classList.add('d-none');
         multiBanner.classList.add('d-none');
+        slideView.classList.add('d-none');
 
-        if (type === 'slider') {
+        if (type === 'slide') {
+            textPanel.classList.add('d-none');
+            document.getElementById('slidePlayerTitle').textContent = q.q;
+            const sImg = document.getElementById('slidePlayerImg');
+            if (q.img) { sImg.src = q.img; sImg.style.display = 'block'; }
+            else { sImg.src = ''; sImg.style.display = 'none'; }
+            const sBody = document.getElementById('slidePlayerBody');
+            if (q.body) { sBody.textContent = q.body; sBody.style.display = 'block'; }
+            else { sBody.style.display = 'none'; }
+            slideView.classList.remove('d-none');
+            return;
+        }
+
+        if (type === 'number') {
             const min = q.min ?? 0, max = q.max ?? 100, step = q.step ?? 1;
-            const mid = Math.round((min + max) / 2);
-            document.getElementById('sliderInput').min = min;
-            document.getElementById('sliderInput').max = max;
-            document.getElementById('sliderInput').step = step;
-            document.getElementById('sliderInput').value = mid;
-            document.getElementById('sliderValue').textContent = mid;
+            const inp = document.getElementById('numberInput');
+            inp.min = min; inp.max = max; inp.step = step; inp.value = '';
             document.getElementById('sliderMin').textContent = min;
             document.getElementById('sliderMax').textContent = max;
+            document.getElementById('numberFeedback').innerHTML = '';
+            clearTimeout(numberDebounceTimer);
             questionText.innerText = q.q;
             textPanel.classList.remove('d-none');
             slider.classList.remove('d-none');
-            multiSubmit.classList.remove('d-none');
             return;
         }
 
@@ -979,13 +1113,33 @@
 
     window.submitMultiAnswer = function() {
         if (!canAnswer) return;
-        const type = questions[currentQuestionIndex].type || 'single';
-        if (type === 'slider') {
-            submitAnswer(Number(document.getElementById('sliderInput').value));
-        } else {
-            if (selectedMultiple.size === 0) return alert('Select at least one answer!');
-            submitAnswer([...selectedMultiple].sort((a, b) => a - b));
+        if (selectedMultiple.size === 0) return alert('Select at least one answer!');
+        submitAnswer([...selectedMultiple].sort((a, b) => a - b));
+    };
+
+    window.onNumberInput = function() {
+        clearTimeout(numberDebounceTimer);
+        const inp = document.getElementById('numberInput');
+        const feedback = document.getElementById('numberFeedback');
+        const q = questions[currentQuestionIndex];
+        const min = q.min ?? 0, max = q.max ?? 100;
+        const val = Number(inp.value);
+
+        if (inp.value.trim() === '') { feedback.innerHTML = ''; return; }
+        if (isNaN(val) || val < min || val > max) {
+            feedback.innerHTML = `<span class="number-error">Must be between ${min} and ${max}</span>`;
+            return;
         }
+
+        feedback.innerHTML = `<span class="text-white-50 small">Saving…</span>`;
+        numberDebounceTimer = setTimeout(async () => {
+            try {
+                await set(ref(db, `${gameBasePath}/answers/q${currentQuestionIndex}/${myPlayerKey}`), val);
+                feedback.innerHTML = `<span class="number-saved">✓ Saved: ${val}</span>`;
+            } catch(e) {
+                feedback.innerHTML = `<span class="number-error">Error saving — try again</span>`;
+            }
+        }, 600);
     };
 
 window.submitAnswer = async function(choice) {
@@ -1013,7 +1167,7 @@ window.submitAnswer = async function(choice) {
             const correctStr = [...(Array.isArray(q.correct) ? q.correct : [q.correct])].sort((a,b)=>a-b).join(',');
             const choiceStr  = [...choice].sort((a,b)=>a-b).join(',');
             isCorrect = choiceStr === correctStr;
-        } else if (type === 'slider') {
+        } else if (type === 'number') {
             const tolerance = q.tolerance ?? 0;
             isCorrect = Math.abs(choice - q.correct) <= tolerance;
         } else {
@@ -1057,17 +1211,25 @@ onValue(gameRef, (snapshot) => {
     if (isAdmin) {
         if (data.state === 'playing') {
             showScreen('hostQuestionScreen');
+            const isSlide = (currentQ?.type || 'single') === 'slide';
+            const timerWrapper = document.getElementById('hostTimerWrapper');
+            const controls = document.getElementById('postQuestionControls');
+
             document.getElementById('displayQuestionText').innerText = currentQ.q;
             const qImg = document.getElementById('questionImage');
-            if (currentQ.img) { qImg.src = currentQ.img; qImg.style.display = 'block'; }
+            if (currentQ.img && !isSlide) { qImg.src = currentQ.img; qImg.style.display = 'block'; }
             else { qImg.src = ''; qImg.style.display = 'none'; }
 
             renderHostOptions(currentQ, data.isAcceptingAnswers);
-            
-            if (data.startTime) runTimerUI(data.startTime, data.duration || 20, 'hostTimerBar');
-            
-            const controls = document.getElementById('postQuestionControls');
-            !data.isAcceptingAnswers ? controls.classList.remove('d-none') : controls.classList.add('d-none');
+
+            if (isSlide) {
+                timerWrapper.classList.add('d-none');
+                controls.classList.remove('d-none');
+            } else {
+                timerWrapper.classList.remove('d-none');
+                if (data.startTime) runTimerUI(data.startTime, data.duration || 20, 'hostTimerBar');
+                !data.isAcceptingAnswers ? controls.classList.remove('d-none') : controls.classList.add('d-none');
+            }
         } else if (data.state === 'scoreboard') {
             showScreen('hostScoreboard');
             updateLeaderboardUI();
@@ -1086,13 +1248,9 @@ onValue(gameRef, (snapshot) => {
         const resOverlay = document.getElementById('resultOverlay');
         const rankFooter = document.getElementById('playerRankDisplay');
 
-        // Reset visibility
-        btns.classList.add('d-none');
+        // Only reset state-level chrome — question UI is managed exclusively by
+        // renderPlayerQuestion so it isn't wiped on every Firebase write (e.g. answer saves)
         timer.classList.add('d-none');
-        document.getElementById('playerTextPanel').classList.add('d-none');
-        document.getElementById('sliderContainer').classList.add('d-none');
-        document.getElementById('multiSubmitContainer').classList.add('d-none');
-        document.getElementById('multiChoiceBanner').classList.add('d-none');
         centerRank.classList.remove('active-screen');
         qUI.classList.remove('d-none');
         rankFooter.classList.add('d-none');
@@ -1100,7 +1258,20 @@ onValue(gameRef, (snapshot) => {
         if (data.state === 'playing') {
             document.getElementById('leaveGameBtn').classList.add('d-none');
             showScreen('questionScreen');
-            if (data.isAcceptingAnswers) {
+            const isSlide = (currentQ?.type || 'single') === 'slide';
+
+            if (isSlide) {
+                resOverlay.style.display = 'none';
+                if (currentQuestionIndex !== lastLoadedQuestion) {
+                    lastLoadedQuestion = currentQuestionIndex;
+                    canAnswer = false;
+                    selectedMultiple.clear();
+                    qUI.style.opacity = "1";
+                    qUI.style.pointerEvents = "all";
+                    document.getElementById('answerFeedback').innerText = "";
+                    renderPlayerQuestion(currentQ);
+                }
+            } else if (data.isAcceptingAnswers) {
                 timer.classList.remove('d-none');
                 resOverlay.style.display = 'none';
 
@@ -1132,10 +1303,11 @@ onValue(gameRef, (snapshot) => {
 } // end startGameListener
 
     async function showResultOverlay(qIdx) {
+        const q = questions[qIdx];
+        if ((q?.type || 'single') === 'slide') return; // slides have no result to show
         const resOverlay = document.getElementById('resultOverlay');
         const ansSnap = await get(ref(db, `${gameBasePath}/answers/q${qIdx}/${myPlayerKey}`));
         const myAns = ansSnap.val();
-        const q = questions[qIdx];
         const type = q.type || 'single';
 
         let isCorrect = false;
@@ -1143,7 +1315,7 @@ onValue(gameRef, (snapshot) => {
             if (type === 'multiple') {
                 const correctStr = [...(Array.isArray(q.correct) ? q.correct : [q.correct])].sort((a,b)=>a-b).join(',');
                 isCorrect = String(myAns) === correctStr;
-            } else if (type === 'slider') {
+            } else if (type === 'number') {
                 const tolerance = q.tolerance ?? 0;
                 isCorrect = Math.abs(Number(myAns) - q.correct) <= tolerance;
             } else {
@@ -1151,10 +1323,18 @@ onValue(gameRef, (snapshot) => {
             }
         }
 
+        // Number input questions: award flat points here (not at submission time)
+        if (type === 'number' && isCorrect && !scoredSliderQuestions.has(qIdx)) {
+            scoredSliderQuestions.add(qIdx);
+            try {
+                await update(ref(db, `${gameBasePath}/players/${myPlayerKey}`), { score: increment(1000) });
+            } catch(e) { console.error(e); }
+        }
+
         resOverlay.style.display = 'flex';
         resOverlay.className = `result-overlay ${isCorrect ? 'bg-correct' : 'bg-wrong'}`;
         document.getElementById('resultStatus').innerText = isCorrect ? "CORRECT" : (myAns === null ? "TIME'S UP" : "WRONG");
-        document.getElementById('resultPoints').innerText = isCorrect ? "Fast and accurate!" : "Better luck next time!";
+        document.getElementById('resultPoints').innerText = isCorrect ? (type === 'number' ? "+1000" : "Fast and accurate!") : "Better luck next time!";
     }
 
     // --- UPDATED RANK DISPLAY ---
@@ -1189,7 +1369,7 @@ function initCreatorScreen() {
         { q: "What is the capital of France?", options: ["London", "Berlin", "Paris", "Madrid"], correct: 2, img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400" },
         { type: "truefalse", q: "The Earth is the largest planet in the Solar System.", correct: 1 },
         { type: "multiple", q: "Which of these are programming languages?", options: ["Python", "HTML", "JavaScript", "Photoshop"], correct: [0, 2] },
-        { type: "slider", q: "How many bones does the adult human body have?", min: 100, max: 400, step: 1, correct: 206, tolerance: 10 }
+        { type: "number", q: "How many bones does the adult human body have?", min: 100, max: 400, step: 1, correct: 206, tolerance: 10 }
     ];
     document.getElementById('questionsInput').value = JSON.stringify(template, null, 2);
 
@@ -1323,7 +1503,7 @@ function startQrScanner() {
     const canvas = document.getElementById('qrCanvas');
     const status = document.getElementById('qrScanStatus');
     video.style.display = 'block';
-    status.textContent = 'Point camera at a QuizLive QR code';
+    status.textContent = 'Point camera at a WQuiz QR code';
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
         .then(stream => {
             qrStream = stream;
@@ -1396,7 +1576,9 @@ window.saveAndLaunch = function() {
             const q = parsedQ[i];
             const type = q.type || 'single';
             if (!q.q) throw new Error(`Question ${i + 1}: missing "q" (question text)`);
-            if (type === 'truefalse') {
+            if (type === 'slide') {
+                // Only requires "q" (title); img and body are optional
+            } else if (type === 'truefalse') {
                 if (q.correct !== 0 && q.correct !== 1)
                     throw new Error(`Question ${i + 1} (true/false): correct must be 0 (True) or 1 (False)`);
             } else if (type === 'multiple') {
@@ -1408,13 +1590,13 @@ window.saveAndLaunch = function() {
                     if (c < 0 || c >= q.options.length)
                         throw new Error(`Question ${i + 1} (multiple): correct index ${c} is out of range`);
                 }
-            } else if (type === 'slider') {
+            } else if (type === 'number' || type === 'slider') {
                 if (typeof q.min !== 'number' || typeof q.max !== 'number' || typeof q.correct !== 'number')
-                    throw new Error(`Question ${i + 1} (slider): min, max, and correct must be numbers`);
+                    throw new Error(`Question ${i + 1} (number): min, max, and correct must be numbers`);
                 if (q.min >= q.max)
-                    throw new Error(`Question ${i + 1} (slider): min must be less than max`);
+                    throw new Error(`Question ${i + 1} (number): min must be less than max`);
                 if (q.correct < q.min || q.correct > q.max)
-                    throw new Error(`Question ${i + 1} (slider): correct must be within [min, max]`);
+                    throw new Error(`Question ${i + 1} (number): correct must be within [min, max]`);
             } else {
                 if (!Array.isArray(q.options) || q.options.length < 2)
                     throw new Error(`Question ${i + 1}: needs at least 2 options`);
@@ -1426,6 +1608,8 @@ window.saveAndLaunch = function() {
         const errEl = document.getElementById('questionsError');
         errEl.textContent = 'Invalid: ' + e.message;
         errEl.classList.remove('d-none');
+        document.getElementById('createGameBtn').innerText = "Error! Check your entries";
+        setTimeout(() => document.getElementById('createGameBtn').innerText = "Save & Launch as Host ▶", 5000);
         return;
     }
     document.getElementById('questionsError').classList.add('d-none');

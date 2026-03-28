@@ -23,6 +23,7 @@
         
         /* Animation for the success button */
         .btn-success { transition: all 0.3s ease; }
+        #adminMapCanvas { height: 500px; width: 100%; border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -73,6 +74,14 @@
                     </div>
                 </div>
             </div>
+            <div id="adminMapContainer" class="row mt-4 d-none">
+                <div class="col-12">
+                    <div class="card p-3">
+                        <h5 class="mb-3">🌍 Where do they come from?</h5>
+                        <div id="adminMapCanvas"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -108,15 +117,23 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const checkinRef = ref(db, 'checkins');
-    
-    // On page load
+
+    // Session ID — generate one and redirect if missing
     const urlParams = new URLSearchParams(window.location.search);
+    let sessionId = urlParams.get('id');
+    if (!sessionId) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        sessionId = Array.from({length: 20}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+        urlParams.set('id', sessionId);
+        window.location.replace(`${window.location.pathname}?${urlParams.toString()}`);
+    }
+
+    const checkinRef = ref(db, `checkins_${sessionId}`);
     const modeType = urlParams.get('mode');
 
     // Check if user already checked in previously
     window.addEventListener('DOMContentLoaded', () => {
-        const savedName = localStorage.getItem('checkedInName');
+        const savedName = localStorage.getItem(`checkedInName_${sessionId}`);
         if (savedName) {
             lockInput(savedName);
         }
@@ -156,32 +173,32 @@
             
             // push() returns a reference that includes the unique key (.key)
             const newEntryRef = push(checkinRef, { name: name, time: timeString });
-            
-            // Save both name and unique DB key to local storage
-            localStorage.setItem('checkedInName', name);
-            localStorage.setItem('checkedInKey', newEntryRef.key);
-            
+
+            // Save both name and unique DB key to local storage (scoped to session)
+            localStorage.setItem(`checkedInName_${sessionId}`, name);
+            localStorage.setItem(`checkedInKey_${sessionId}`, newEntryRef.key);
+
             lockInput(name);
         }
 
         if (modeType === 'map') {
-            window.location.href = 'where_from.html?name=' + name;
+            window.location.href = `where_from.html?name=${encodeURIComponent(name)}&id=${sessionId}`;
         }
     };
 
     window.resetCheckIn = function() {
         if (confirm("Are you sure you want to check out? This will remove you from the list.")) {
-            const key = localStorage.getItem('checkedInKey');
-            
+            const key = localStorage.getItem(`checkedInKey_${sessionId}`);
+
             // 1. Remove from Firebase if key exists
             if (key) {
-                const userRef = ref(db, `checkins/${key}`);
+                const userRef = ref(db, `checkins_${sessionId}/${key}`);
                 remove(userRef);
             }
 
             // 2. Clean Local Storage
-            localStorage.removeItem('checkedInName');
-            localStorage.removeItem('checkedInKey');
+            localStorage.removeItem(`checkedInName_${sessionId}`);
+            localStorage.removeItem(`checkedInKey_${sessionId}`);
 
             // 3. Reset UI to original state
             const nameField = document.getElementById('nameInput');
@@ -259,19 +276,96 @@
     window.updateQR = function() {
         const baseUrl = window.location.href.split('?')[0]; // Get URL without existing params
         const isChecked = document.getElementById('modeToggle').checked;
-        
-        // Generate the dynamic URL
-        const finalUrl = isChecked ? `${baseUrl}?mode=map` : baseUrl;
-        
+
+        // Always include session ID so guests join the same session
+        const finalUrl = isChecked
+            ? `${baseUrl}?id=${sessionId}&mode=map`
+            : `${baseUrl}?id=${sessionId}`;
+
         qrcode.makeCode(finalUrl);
     };
 
-    // Replace your existing window.toggleQR with this:
     window.toggleQR = function() {
         window.updateQR();
+        const isChecked = document.getElementById('modeToggle').checked;
+        const mapContainer = document.getElementById('adminMapContainer');
+        if (isChecked) {
+            mapContainer.classList.remove('d-none');
+            loadAdminMap();
+        } else {
+            mapContainer.classList.add('d-none');
+        }
     };
 
-    // Call once on init to ensure it matches the current page state
+    // Lazily load Google Maps and set up real-time pin listener — runs once
+    let adminMapLoaded = false;
+    function loadAdminMap() {
+        if (adminMapLoaded) return;
+        adminMapLoaded = true;
+
+        const adminMarkers = {};
+
+        window.initAdminMap = async function() {
+            const { Map } = await google.maps.importLibrary("maps");
+            const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
+
+            const adminMap = new Map(document.getElementById("adminMapCanvas"), {
+                zoom: 2,
+                center: { lat: 46.8182, lng: 8.2275 },
+                mapId: "MAP_1",
+                disableDefaultUI: true,
+                zoomControl: true,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: false,
+                rotateControl: false,
+                gestureHandling: "greedy"
+            });
+
+            const mapRef = ref(db, `map_${sessionId}`);
+            onValue(mapRef, (snapshot) => {
+                for (let id in adminMarkers) { adminMarkers[id].map = null; }
+                Object.keys(adminMarkers).forEach(k => delete adminMarkers[k]);
+
+                const data = snapshot.val();
+                if (!data) return;
+
+                Object.keys(data).forEach(id => {
+                    const loc = data[id];
+
+                    const pin = new PinElement({
+                        background: "#EA4335",
+                        borderColor: "#B31412",
+                        glyphColor: "white",
+                    });
+
+                    const container = document.createElement('div');
+                    container.style.cssText = 'display:flex;flex-direction:column;align-items:center;';
+
+                    const label = document.createElement('div');
+                    label.innerText = loc.name;
+                    label.style.cssText = 'background:white;padding:2px 8px;border-radius:5px;font-size:12px;font-weight:bold;margin-bottom:4px;box-shadow:0 2px 4px rgba(0,0,0,0.2);white-space:nowrap;';
+
+                    container.appendChild(label);
+                    container.appendChild(pin.element);
+
+                    adminMarkers[id] = new AdvancedMarkerElement({
+                        map: adminMap,
+                        position: { lat: loc.lat, lng: loc.lng },
+                        content: container,
+                        title: loc.name
+                    });
+                });
+            });
+        };
+
+        const script = document.createElement('script');
+        script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyAwpqOZHGYknm6kwNtk6s-ssawXX_I1UR8&callback=initAdminMap&libraries=marker&v=weekly&loading=async';
+        script.async = true;
+        document.head.appendChild(script);
+    }
+
+    // Call once on init to ensure QR matches current page state
     window.updateQR();
 
 </script>
