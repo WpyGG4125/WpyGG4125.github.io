@@ -476,7 +476,6 @@
             <h2 class="fw-bold mb-4">Enter Nickname</h2>
             <input type="text" id="nicknameInput" class="form-control form-control-lg mb-3 text-center" placeholder="CoolNickname123" autocomplete="off">
             <button class="btn btn-success btn-lg w-100 mb-2" onclick="joinGame()">Join Now!</button>
-            <button id="resetNameBtn" class="btn btn-outline-secondary btn-sm w-100 d-none" onclick="resetPlayerName()">Use a different name</button>
         </div>
         <button class="btn btn-link text-white-50 small mt-3" onclick="goHome()">← Back to home</button>
     </div>
@@ -608,7 +607,8 @@
                 <p id="slidePlayerBody" class="slide-body-text mb-0" style="display:none"></p>
             </div>
             <div id="leaveGameBtn" class="d-none text-center mt-3">
-                <button class="btn btn-link text-white-50 small" onclick="goHome()">← Leave game</button>
+                <button class="btn btn-link text-white-50 small" onclick="leaveGame()">← Leave game</button>
+                <button id="changeNameBtn" class="btn btn-link text-white-50 small ms-3" onclick="changePlayerName()">✏️ Use a different name</button>
             </div>
             <div id="multiChoiceBanner" class="d-none text-center mb-2">
                 <span class="multi-banner">⚠️ Multiple answers possible — select all that apply!</span>
@@ -639,7 +639,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, get, increment, set, onValue, push, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, get, increment, set, onValue, push, update, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     // --- CONFIGURATION ---
     const firebaseConfig = {
@@ -760,11 +760,21 @@
         if (id) {
             startGameSession(id, { deferListener: true });
             applyStoredMeta();
-            const storedName = localStorage.getItem('kahootPlayerName');
-            if (storedName) {
-                document.getElementById('nicknameInput').value = storedName;
-                document.getElementById('resetNameBtn').classList.remove('d-none');
+
+            // Check for an existing session for this game (so refresh doesn't re-prompt for name)
+            const savedSessionId = localStorage.getItem('kahootSessionGameId');
+            const savedPlayerKey = localStorage.getItem('kahootSessionPlayerKey');
+            const hasSession = savedSessionId === id && !!savedPlayerKey;
+
+            if (hasSession) {
+                myPlayerKey = savedPlayerKey;
+            } else {
+                const storedName = localStorage.getItem('kahootPlayerName');
+                if (storedName) {
+                    document.getElementById('nicknameInput').value = storedName;
+                }
             }
+
             // Fetch game PIN and host questions from Firebase, then start listener
             get(gameRef).then(snap => {
                 const val = snap.val();
@@ -775,10 +785,20 @@
                 if (Array.isArray(val?.questions) && val.questions.length > 0) {
                     questions = normaliseQuestions(val.questions);
                 }
+                if (hasSession) {
+                    // Restore session: skip join screen, go straight to waiting/playing
+                    showScreen('questionScreen');
+                    document.getElementById('playerTextPanel').classList.remove('d-none');
+                    document.getElementById('questionText').innerText = "Waiting for host to start…";
+                    document.getElementById('leaveGameBtn').classList.remove('d-none');
+                }
             }).catch(() => {}).finally(() => {
                 startGameListener();
             });
-            showScreen('joinScreen');
+
+            if (!hasSession) {
+                showScreen('joinScreen');
+            }
             return;
         }
 
@@ -1019,6 +1039,10 @@
         const newPlayer = push(playersRef);
         myPlayerKey = newPlayer.key;
         set(newPlayer, { name: name, score: 0 });
+
+        // Persist session so a refresh restores the player without re-joining
+        localStorage.setItem('kahootSessionGameId', gameBasePath.replace('quizGame_', ''));
+        localStorage.setItem('kahootSessionPlayerKey', myPlayerKey);
 
         showScreen('questionScreen');
         document.getElementById('playerTextPanel').classList.remove('d-none');
@@ -1453,11 +1477,34 @@ window.goHome = function() {
     window.location.href = window.location.pathname;
 };
 
+window.leaveGame = function() {
+    localStorage.removeItem('kahootSessionGameId');
+    localStorage.removeItem('kahootSessionPlayerKey');
+    localStorage.removeItem('kahootPlayerName');
+    goHome();
+};
+
 window.resetPlayerName = function() {
     localStorage.removeItem('kahootPlayerName');
     document.getElementById('nicknameInput').value = '';
     document.getElementById('nicknameInput').focus();
-    document.getElementById('resetNameBtn').classList.add('d-none');
+};
+
+window.changePlayerName = async function() {
+    // Remove old player entry from Firebase
+    if (myPlayerKey && gameBasePath) {
+        try { await remove(ref(db, `${gameBasePath}/players/${myPlayerKey}`)); } catch(e) {}
+    }
+    // Clear session and name from localStorage
+    localStorage.removeItem('kahootSessionGameId');
+    localStorage.removeItem('kahootSessionPlayerKey');
+    localStorage.removeItem('kahootPlayerName');
+    myPlayerKey = null;
+
+    // Clear the nickname input and go back to join screen
+    document.getElementById('nicknameInput').value = '';
+    document.getElementById('leaveGameBtn').classList.add('d-none');
+    showScreen('joinScreen');
 };
 
 window.resetHostSession = function() {
