@@ -45,6 +45,7 @@
         }
         .btn-answer:active { transform: translateY(6px); box-shadow: 0 2px 0 rgba(0,0,0,0.3); }
         .btn-answer .btn-label { font-size: 1rem; font-weight: 600; line-height: 1.2; }
+        .btn-answer-tf { height: 200px; }
         /* .btn-answer { height: 120px; font-size: 1.5rem; font-weight: bold; border: none; color: white; border-radius: 8px; transition: transform 0.1s; } */
         /* .btn-answer:active { transform: scale(0.95); } */
         .bg-red { background-color: var(--kahoot-red); }
@@ -101,8 +102,10 @@
         }
 
         /* Screens */
-        .game-screen { display: none; padding: 20px; }
+        .game-screen { display: none; }
         .active-screen { display: block; }
+        #questionScreen { min-height: 80vh; flex-direction: column; justify-content: center; }
+        #questionScreen.active-screen { display: flex; }
 
         /* Frosted glass backdrop for question cards */
         .q-backdrop {
@@ -117,12 +120,6 @@
         /* Text shadow for legibility over any background */
         .q-text-shadow { text-shadow: 0 2px 14px rgba(0,0,0,0.7), 0 1px 3px rgba(0,0,0,0.9); }
 
-        /* Rainbow accent bar (top of host question) */
-        .q-top-accent {
-            height: 5px;
-            background: linear-gradient(90deg, var(--kahoot-red), var(--kahoot-blue), var(--kahoot-yellow), var(--kahoot-green));
-            border-radius: 3px; margin-bottom: 1.25rem; opacity: 0.8;
-        }
         /* Subtle divider between question and options */
         .q-divider {
             height: 1px;
@@ -259,9 +256,9 @@
         }
 
         /* Timer Styling */
-        .timer-wrapper { display: flex; align-items: center; gap: 15px; margin-bottom: 2rem; }
+        .timer-wrapper { display: flex; align-items: center; gap: 15px; margin-bottom: 10px; }
         .timer-circle {
-            width: 80px; height: 80px; border-radius: 50%;
+            width: 60px; height: 60px; border-radius: 50%;
             border: 4px solid #fff; display: flex; align-items: center;
             justify-content: center; font-weight: bold; font-size: 1.8rem;
             background: grey; flex-shrink: 0;
@@ -355,6 +352,7 @@
 
 <div id="gameLogo">
     <img id="gameLogoImg" src="" alt="Logo">
+    <div id="gameLogoPin" style="display:none;text-align:center;margin-top:5px;background:rgba(0,0,0,0.45);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:2px 10px;font-size:1rem;font-weight:700;letter-spacing:0.1em;color:rgba(255,255,255,0.75);text-transform:uppercase">PIN: ——</div>
 </div>
 
 <div id="loadingOverlay">
@@ -394,7 +392,7 @@
                     <canvas id="qrCanvas" style="display:none"></canvas>
                     <p id="qrScanStatus" class="text-white-50 small mt-2 mb-0">Point camera at a WQuiz QR code</p>
                     <hr class="border-secondary my-3">
-                    <p class="text-white-50 small mb-2">Or enter a game code manually:</p>
+                    <p class="text-white-50 small mb-2">Or enter a game pin manually:</p>
                     <input type="text" id="gameCodeField" class="form-control mb-2"
                         maxlength="20" placeholder="6-digit PIN"
                         onkeydown="if(event.key==='Enter')joinWithCode()" autocomplete="off" spellcheck="false">
@@ -425,17 +423,24 @@
         </div>
         <div class="d-flex gap-3 justify-content-center flex-wrap mb-3">
             <button id="startBtn" class="btn btn-light btn-lg d-none" onclick="startGame()">Start Quiz</button>
-            <button class="btn btn-outline-danger btn-sm align-self-center" onclick="resetHostSession()">Reset PIN &amp; Game ID</button>
+            <div class="d-flex flex-column align-items-center">
+                <button class="btn btn-outline-danger btn-sm align-self-center" onclick="resetHostSession()">Reset PIN &amp; Game ID</button>
+                <button id="lobbyFullscreenBtn" class="btn btn-outline-light btn-sm mt-2 w-100" onclick="toggleFullscreen()">⛶ Enter Fullscreen</button>
+            </div>
         </div>
         <button class="btn btn-link text-white-50 small" onclick="goHome()">← Back to home</button>
     </div>
 
     <div id="hostQuestionScreen" class="game-screen">
         <div class="host-controls">
-            <button class="btn btn-sm btn-outline-warning" onclick="skipQuestion()">Skip ⏭️</button>
-            <button class="btn btn-sm btn-outline-danger" onclick="quitToLobby()">Quit ❌</button>
+            <div class="d-flex flex-column">
+                <div class="d-flex justify-content-between">
+                    <button class="btn btn-sm btn-outline-warning ml-1" onclick="skipQuestion()">Skip ⏭️</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="quitToLobby()">Quit ❌</button>
+                </div>
+                <button id="questionFullscreenBtn" class="btn btn-outline-light btn-sm mt-2" onclick="toggleFullscreen()">⛶ Enter Fullscreen</button>
+            </div>
         </div>
-        <div class="q-top-accent"></div>
         <div id="hostTimerWrapper" class="timer-wrapper">
             <div id="hostTimerCircle" class="timer-circle">20</div>
             <div class="progress">
@@ -443,15 +448,18 @@
             </div>
         </div>
         <div class="q-backdrop mb-4">
-            <img id="questionImage" src="" class="img-fluid rounded mb-3" style="max-height: 220px; display: none; margin: 0 auto;">
-            <h1 id="displayQuestionText" class="display-4 fw-bold q-text-shadow mb-0"></h1>
+            <img id="questionImage" src="" class="img-fluid rounded mb-3" style="width:100%;max-height:40vh;object-fit:contain;display:none;margin:0 auto;">
+            <h2 id="displayQuestionText" class="display-6 fw-bold q-text-shadow mb-0"></h2>
         </div>
         <div id="questionTypeBanner" class="mb-2 text-center"></div>
         <div class="q-divider"></div>
-        <div id="hostOptionsContainer" class="row g-4"></div>
+        <div id="hostOptionsContainer" class="row g-4 justify-content-center"></div>
 
         <div id="postQuestionControls" class="mt-4 d-none">
             <button id="flowBtn" class="btn btn-primary btn-lg" onclick="handleGameFlow()">Proceed →</button>
+        </div>
+        <div class="mt-3 text-center">
+            
         </div>
     </div>
 
@@ -602,8 +610,8 @@
             </div>
             <div id="slidePlayerView" class="d-none q-backdrop mb-4 text-center">
                 <div class="slide-pill mb-3">📖 Presentation Slide</div>
-                <h2 id="slidePlayerTitle" class="q-text-shadow fw-bold mb-3"></h2>
-                <img id="slidePlayerImg" src="" class="img-fluid rounded mb-3" style="max-height:220px;display:none;margin:0 auto;">
+                <h3 id="slidePlayerTitle" class="q-text-shadow fw-bold mb-3"></h3>
+                <img id="slidePlayerImg" src="" class="img-fluid rounded mb-3" style="width:100%;max-height:50vh;object-fit:contain;display:none;margin:0 auto;">
                 <p id="slidePlayerBody" class="slide-body-text mb-0" style="display:none"></p>
             </div>
             <div id="leaveGameBtn" class="d-none text-center mt-3">
@@ -613,7 +621,7 @@
             <div id="multiChoiceBanner" class="d-none text-center mb-2">
                 <span class="multi-banner">⚠️ Multiple answers possible — select all that apply!</span>
             </div>
-            <div id="answerButtonsRow" class="row g-3 d-none"></div>
+            <div id="answerButtonsRow" class="row g-3 justify-content-center d-none"></div>
             <div id="sliderContainer" class="d-none">
                 <div class="q-backdrop text-center" style="max-width:380px;margin:0 auto;padding:20px 24px 16px;">
                     <p class="text-white-50 small mb-3 mb-0">
@@ -629,7 +637,7 @@
             <div id="multiSubmitContainer" class="d-none mt-3">
                 <button class="btn btn-light btn-lg w-100" onclick="submitMultiAnswer()">Submit →</button>
             </div>
-            <div id="answerFeedback" class="mt-4 h4"></div>
+            <div id="answerFeedback" class="mt-4 h4"></div>             <!-- deprecated -->
             <div id="playerTimerContainer" class="progress mb-4 d-none">
                 <div id="timerBar" class="progress-bar" style="width: 100%"></div>
             </div>
@@ -750,6 +758,10 @@
             update(gameRef, { joinId, questions });
             document.getElementById('joinIdDisplay').classList.remove('d-none');
             document.getElementById('joinIdNumber').textContent = joinId;
+            // Show PIN below the fixed logo (shown even if no logo image is set)
+            const pinEl = document.getElementById('gameLogoPin');
+            if (pinEl) { pinEl.textContent = `PIN: ${joinId}`; pinEl.style.display = 'block'; }
+            document.getElementById('gameLogo').style.display = 'block';
             document.getElementById('startBtn').classList.remove('d-none');
             listenToPlayers();
             showScreen('lobbyScreen');
@@ -829,7 +841,7 @@
         if (type === 'slide') {
             banner.innerHTML = `<span class="multi-banner">📖 Presentation Slide</span>`;
             container.innerHTML = `<div class="col-12 text-center py-2">
-                ${q.img ? `<img src="${q.img}" class="img-fluid rounded mb-4" style="max-height:320px;margin:0 auto;display:block;box-shadow:0 8px 32px rgba(0,0,0,0.4)">` : ''}
+                ${q.img ? `<img src="${q.img}" class="img-fluid rounded mb-4" style="width:100%;max-height:50vh;object-fit:contain;margin:0 auto;display:block;box-shadow:0 8px 32px rgba(0,0,0,0.4)">` : ''}
                 ${q.body ? `<p class="host-slide-body">${q.body}</p>` : ''}
             </div>`;
             return;
@@ -863,12 +875,14 @@
             banner.innerHTML = '';
         }
 
+        const colClass = options.length >= 5 ? 'col-4' : 'col-6';
+        const tfStyle = type === 'truefalse' ? ' style="min-height:200px;display:flex;align-items:center;justify-content:center;"' : '';
         container.innerHTML = options.map((opt, i) => {
             let cls = `p-4 ${OPT_COLORS[i % OPT_COLORS.length]} rounded-3 h3 opt-box`;
             if (!isAcceptingAnswers) {
                 cls += correctSet.has(i) ? ' reveal-correct' : ' reveal-wrong';
             }
-            return `<div class="col-6"><div class="${cls}">${OPT_SHAPES[i % OPT_SHAPES.length]} ${opt}</div></div>`;
+            return `<div class="${colClass}"><div class="${cls}"${tfStyle}>${OPT_SHAPES[i % OPT_SHAPES.length]} ${opt}</div></div>`;
         }).join('');
     }
 
@@ -1018,15 +1032,14 @@
 
     window.quitToLobby = function() {
         if (confirm("Quit game and return to Lobby? Progress will be lost.")) {
-            // Reset game state and clear answers/players if desired
-            set(gameRef, { 
-                state: 'lobby', 
-                currentQuestion: 0, 
-                isAcceptingAnswers: false 
-            });
-            // Optional: clear players
-            set(playersRef, {}); 
-            location.reload(); // Refresh host to regenerate QR
+            // Write 'ended' so active players are kicked before we wipe the node
+            update(gameRef, { state: 'ended', isAcceptingAnswers: false });
+            // Small delay to let the player listeners receive the 'ended' event, then reset
+            setTimeout(() => {
+                set(gameRef, { state: 'lobby', currentQuestion: 0, isAcceptingAnswers: false });
+                set(playersRef, {});
+                location.reload();
+            }, 800);
         }
     };
 
@@ -1108,14 +1121,16 @@
             multiSubmit.classList.remove('d-none');
         }
 
+        const colClass = options.length >= 5 ? 'col-4' : 'col-6';
+        const isTF = type === 'truefalse';
         btns.innerHTML = options.map((opt, i) => {
             const color = OPT_COLORS[i % OPT_COLORS.length];
             const shape = OPT_SHAPES[i % OPT_SHAPES.length];
             const handler = isMultiple
                 ? `toggleMultiAnswer(${i}, this)`
                 : `submitAnswer(${i})`;
-            return `<div class="col-6">
-                <button class="btn-answer ${color} w-100 position-relative" id="ansBtn${i}" onclick="${handler}">
+            return `<div class="${colClass}">
+                <button class="btn-answer${isTF ? ' btn-answer-tf' : ''} ${color} w-100 position-relative" id="ansBtn${i}" onclick="${handler}">
                     <span>${shape}</span>
                     <span class="btn-label">${opt}</span>
                 </button>
@@ -1208,9 +1223,9 @@ window.submitAnswer = async function(choice) {
             const remaining = Math.max(0, (gameData.duration || 20) - elapsed);
             const pointsEarned = Math.floor(500 + (remaining * 25));
             await update(playerRef, { score: increment(pointsEarned) });
-            document.getElementById('answerFeedback').innerHTML = `<span class='text-success'>Correct! +${pointsEarned}</span>`;
+            // document.getElementById('answerFeedback').innerHTML = `<span class='text-success'>Correct! +${pointsEarned}</span>`;
         } else {
-            document.getElementById('answerFeedback').innerHTML = `<span class='text-danger'>Wrong!</span>`;
+            // document.getElementById('answerFeedback').innerHTML = `<span class='text-danger'>Wrong!</span>`;
         }
     } catch (e) {
         console.error(e);
@@ -1292,7 +1307,7 @@ onValue(gameRef, (snapshot) => {
                     selectedMultiple.clear();
                     qUI.style.opacity = "1";
                     qUI.style.pointerEvents = "all";
-                    document.getElementById('answerFeedback').innerText = "";
+                    // document.getElementById('answerFeedback').innerText = "";
                     renderPlayerQuestion(currentQ);
                 }
             } else if (data.isAcceptingAnswers) {
@@ -1305,7 +1320,7 @@ onValue(gameRef, (snapshot) => {
                     selectedMultiple.clear();
                     qUI.style.opacity = "1";
                     qUI.style.pointerEvents = "all";
-                    document.getElementById('answerFeedback').innerText = "";
+                    // document.getElementById('answerFeedback').innerText = "";
                     renderPlayerQuestion(currentQ);
                 }
                 if (data.startTime) runTimerUI(data.startTime, data.duration || 20, 'timerBar');
@@ -1321,6 +1336,14 @@ onValue(gameRef, (snapshot) => {
             showScreen('questionScreen');
             resOverlay.style.display = 'none';
             showPlayerRank(true); // Big Center Display
+        }
+        else if (data.state === 'ended') {
+            // Host quit — clear session and return to home
+            localStorage.removeItem('kahootSessionGameId');
+            localStorage.removeItem('kahootSessionPlayerKey');
+            localStorage.removeItem('kahootPlayerName');
+            alert("The host has ended the game.");
+            goHome();
         }
     }
 });
@@ -1358,7 +1381,7 @@ onValue(gameRef, (snapshot) => {
         resOverlay.style.display = 'flex';
         resOverlay.className = `result-overlay ${isCorrect ? 'bg-correct' : 'bg-wrong'}`;
         document.getElementById('resultStatus').innerText = isCorrect ? "CORRECT" : (myAns === null ? "TIME'S UP" : "WRONG");
-        document.getElementById('resultPoints').innerText = isCorrect ? (type === 'number' ? "+1000" : "Fast and accurate!") : "Better luck next time!";
+        document.getElementById('resultPoints').innerText = isCorrect ? (type === 'number' ? "+1000 points" : "Fast and accurate!") : "Better luck next time!";
     }
 
     // --- UPDATED RANK DISPLAY ---
@@ -1507,6 +1530,23 @@ window.changePlayerName = async function() {
     showScreen('joinScreen');
 };
 
+window.toggleFullscreen = function() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+        document.exitFullscreen();
+    }
+};
+
+document.addEventListener('fullscreenchange', () => {
+    const isFs = !!document.fullscreenElement;
+    const label = isFs ? '⛶ Exit Fullscreen' : '⛶ Enter Fullscreen';
+    ['lobbyFullscreenBtn', 'questionFullscreenBtn'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.textContent = label;
+    });
+});
+
 window.resetHostSession = function() {
     if (!confirm('Generate a new game ID and PIN? Players in the current session will be disconnected.')) return;
     const newGameId = generateGameId();
@@ -1564,7 +1604,7 @@ function startQrScanner() {
             });
         })
         .catch(() => {
-            status.textContent = 'Camera unavailable — use the code below.';
+            status.textContent = 'Camera unavailable — enter game pin below.';
             video.style.display = 'none';
         });
 }
