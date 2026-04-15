@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satellite Propulsion Timeline</title>
+    <style>
+        :root {
+            --space-bg: #05070a;
+            --trail-color: rgba(0, 200, 255, 0.6);
+            --glow-color: #00f2ff;
+            --text-color: #e0e0e0;
+        }
+
+        body {
+            background-color: var(--space-bg);
+            /* Starry background effect with 16 layers for density and randomness */
+            background-image: /* Layer 1: Tiny, faint stars */
+                radial-gradient(circle, rgba(255,255,255,0.3) 0.5px, transparent 1px),
+                /* Layer 2: Tiny, faint stars */
+                radial-gradient(circle, rgba(255,255,255,0.2) 0.8px, transparent 1.5px),
+                /* Layer 3: Tiny, faint stars */
+                radial-gradient(circle, rgba(255,255,255,0.4) 0.6px, transparent 1.2px),
+                /* Layer 4: Tiny, bright stars */
+                radial-gradient(circle, rgba(255,255,255,0.9) 0.5px, transparent 1px),
+                /* Layer 5: Tiny, bright stars */
+                radial-gradient(circle, rgba(255,255,255,0.8) 0.7px, transparent 1.4px),
+                /* Layer 6: Tiny, bright stars */
+                radial-gradient(circle, rgba(255,255,255,0.7) 0.6px, transparent 1.2px),
+                /* Layer 7: Small, medium stars */
+                radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 2px),
+                /* Layer 8: Small, medium stars */
+                radial-gradient(circle, rgba(255,255,255,0.5) 1.2px, transparent 2.4px),
+                /* Layer 9: Small, medium stars */
+                radial-gradient(circle, rgba(255,255,255,0.7) 0.9px, transparent 1.8px),
+                /* Layer 10: Small, faint stars */
+                radial-gradient(circle, rgba(255,255,255,0.3) 1.1px, transparent 2.2px),
+                /* Layer 11: Small, faint stars */
+                radial-gradient(circle, rgba(255,255,255,0.2) 1.3px, transparent 2.6px),
+                /* Layer 12: Small, faint stars */
+                radial-gradient(circle, rgba(255,255,255,0.4) 1px, transparent 2px),
+                /* Layer 13: Medium, faint stars */
+                radial-gradient(circle, rgba(255,255,255,0.25) 1.5px, transparent 3px),
+                /* Layer 14: Medium, faint stars */
+                radial-gradient(circle, rgba(255,255,255,0.15) 1.8px, transparent 3.6px),
+                /* Layer 15: Medium, faint stars */
+                radial-gradient(circle, rgba(255,255,255,0.3) 1.6px, transparent 3.2px),
+                /* Layer 16: Larger, very faint "nebula" spots */
+                radial-gradient(circle, rgba(255,255,255,0.1) 2px, transparent 4px);
+            background-size: 
+                1500px 1500px, 1200px 1200px, 1000px 1000px,
+                900px 900px, 750px 750px, 600px 600px,
+                500px 500px, 450px 450px, 400px 400px,
+                350px 350px, 300px 300px, 250px 250px,
+                200px 200px, 180px 180px, 160px 160px,
+                140px 140px;
+            background-position: 
+                300px 800px, 1200px 150px, 700px 1300px,
+                1800px 400px, 50px 1100px, 1000px 600px,
+                200px 100px, 900px 950px, 100px 750px,
+                1500px 200px, 400px 1600px, 1100px 300px,
+                50px 500px, 800px 100px, 1000px 1400px,
+                1200px 800px;
+            background-attachment: fixed;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+            overflow-x: hidden;
+            min-height: 2000px; /* Ensures enough room for the snake path */
+        }
+
+        .container {
+            position: relative;
+            width: 100%;
+            max-width: 1000px;
+            margin: 50px auto;
+            height: 1800px;
+            padding-bottom: 200px;
+        }
+
+        /* The SVG Path for the "Snake" Trail */
+        .timeline-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .trail-path {
+            fill: none;
+            stroke: var(--trail-color);
+            stroke-width: 6;
+            stroke-linecap: round;
+            stroke-dasharray: 10, 15;
+            filter: drop-shadow(0 0 8px var(--glow-color));
+            animation: flow 2s linear infinite;
+        }
+
+        @keyframes flow {
+            from { stroke-dashoffset: 25; }
+            to { stroke-dashoffset: 0; }
+        }
+
+        /* Satellite at the end */
+        .satellite-end {
+            position: absolute;
+            width: 240px;
+            height: 240px;
+            z-index: 3;
+            transform: translate(-50%, -50%);
+            background-image: url('../resources/textures/general2_w_o_background.png');
+            background-size: cover;
+        }
+
+        /* Speech Bubble Nodes */
+        .speech-bubble {
+            position: absolute;
+            z-index: 10;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            width: 44px;
+            height: 44px;
+            background: var(--glow-color);
+            color: var(--space-bg);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            box-shadow: 0 0 15px var(--glow-color);
+        }
+
+        .speech-bubble:hover {
+            transform: translate(-50%, -50%) scale(1.15);
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-style: solid;
+        }
+
+        .speech-bubble.point-down::after {
+            top: 100%;
+            border-width: 10px 8px 0 8px;
+            border-color: var(--glow-color) transparent transparent transparent;
+        }
+
+        .speech-bubble.point-up::after {
+            bottom: 100%;
+            border-width: 0 8px 10px 8px;
+            border-color: transparent transparent var(--glow-color) transparent;
+        }
+
+        /* Timeline Nodes */
+        .node {
+            position: absolute;
+            z-index: 10;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .node:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        .thumbnail {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+            object-fit: cover;
+            display: block;
+        }
+
+        .date-label {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: bold;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            background: rgba(0,0,0,0.7);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        /* Information Box (Hidden by default) */
+        .info-box {
+            opacity: 0;
+            visibility: hidden;
+            position: absolute;
+            top: 70px;
+            left: 50%;
+            transform: translate(-50%, 15px);
+            width: 250px;
+            background: rgba(20, 25, 35, 0.95);
+            border: 1px solid var(--glow-color);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 20;
+            transition: opacity 0.3s ease, transform 0.3s ease, visibility 0s 0.3s;
+        }
+
+        .info-box.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%);
+            transition-delay: 0s;
+        }
+
+        .info-box h3 {
+            margin: 0 0 10px 0;
+            color: var(--glow-color);
+            font-size: 1.1rem;
+        }
+
+        .info-box p {
+            font-size: 0.85rem;
+            line-height: 1.4;
+            margin: 0;
+        }
+
+        .close-btn {
+            float: right;
+            cursor: pointer;
+            color: #ff4d4d;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="timelineContainer">
+    <svg class="timeline-svg" viewBox="0 0 1000 1800" preserveAspectRatio="none">
+        <path id="snakePath" class="trail-path" d="M 50 50 C 80 154, 100 250, 552 162 S 1102 400, 671 427 S 241 460, 157 616 S 700 650, 919 740 S 118 1186, 168 939 S 676 1117, 929 1232 S 472.3333 1353.3333, 244 1414 S 244 1717, 726 1674" />
+    </svg>
+
+    <div class="satellite-end" style="left: 72.6%; top: 93%;"></div>
+
+    <!-- Node 1: Sputnik -->
+    <div class="node" style="left: 10%; top: 8.3%;" onclick="toggleBox(1)">
+        <div class="date-label">September 2018</div>
+        <img class="thumbnail" src="https://picsum.photos/id/10/100/100" alt="Point 1">
+        <div id="box-1" class="info-box">
+            <span class="close-btn" onclick="event.stopPropagation(); toggleBox(1)">×</span>
+            <h3>Start of CHESS mission</h3>
+            <p>EPFL students and the EPFL Space Center came together to laydown the basis of what would be the CHESS mission.</p>
+        </div>
+    </div>
+
+    <!-- Node 2: Apollo 11 -->
+    <div class="node" style="left: 60%; top: 9%;" onclick="toggleBox(2)">
+        <div class="date-label">September 2019</div>
+        <img class="thumbnail" src="https://picsum.photos/id/15/100/100" alt="Point 2">
+        <div id="box-2" class="info-box">
+            <span class="close-btn" onclick="event.stopPropagation(); toggleBox(2)">×</span>
+            <h3>Foundation of EST</h3>
+            <p>EPFL Spacecraft team is created with only ... members</p>
+        </div>
+    </div>
+
+    <!-- Node 3: Voyager -->
+    <div class="node" style="left: 40%; top: 25%;" onclick="toggleBox(3)">
+        <div class="date-label">January 2023</div>
+        <img class="thumbnail" src="https://picsum.photos/id/20/100/100" alt="Point 3">
+        <div id="box-3" class="info-box">
+            <span class="close-btn" onclick="event.stopPropagation(); toggleBox(3)">×</span>
+            <h3>Bunny launch mission</h3>
+            <p>Voyager 1 and 2 were launched to explore the outer planets and eventually enter interstellar space.</p>
+        </div>
+    </div>
+
+    <!-- Node 4: Space Shuttle -->
+    <div class="node" style="left: 80%; top: 40%;" onclick="toggleBox(4)">
+        <div class="date-label">January 2025</div>
+        <img class="thumbnail" src="https://picsum.photos/id/25/100/100" alt="Point 4">
+        <div id="box-4" class="info-box">
+            <span class="close-btn" onclick="event.stopPropagation(); toggleBox(4)">×</span>
+            <h3>First Space Shuttle Flight</h3>
+            <p>The launch of Columbia (STS-1) marks the beginning of the reusable spacecraft era.</p>
+        </div>
+    </div>
+
+    <!-- Node 5: Hubble -->
+    <div class="node" style="left: 18%; top: 52.8%;" onclick="toggleBox(5)">
+        <div class="date-label">April 2026</div>
+        <img class="thumbnail" src="https://picsum.photos/id/30/100/100" alt="Point 5">
+        <div id="box-5" class="info-box">
+            <span class="close-btn" onclick="event.stopPropagation(); toggleBox(5)">×</span>
+            <h3>Moved from conception stage to testing stage</h3>
+            <p>Deployed by the Space Shuttle Discovery, providing our clearest views yet of the deep universe.</p>
+        </div>
+    </div>
+
+    <!-- Node 6: ISS -->
+    <div class="node" style="left: 80%; top: 65%;" onclick="toggleBox(6)">
+        <div class="date-label">2027</div>
+        <img class="thumbnail" src="https://picsum.photos/id/35/100/100" alt="Point 6">
+        <div id="box-6" class="info-box">
+            <span class="close-btn" onclick="event.stopPropagation(); toggleBox(6)">×</span>
+            <h3>Launching of our CHESS satellite into space!</h3>
+            <p>Assembly begins on the largest modular space station in low Earth orbit, a multinational collaborative project.</p>
+        </div>
+    </div>
+
+    <!-- Node 7: James Webb -->
+    <div class="node" style="left: 40%; top: 92%;" onclick="toggleBox(7)">
+        <div class="date-label">2027++</div>
+        <img class="thumbnail" src="https://picsum.photos/id/40/100/100" alt="Point 7">
+        <div id="box-7" class="info-box">
+            <span class="close-btn" onclick="event.stopPropagation(); toggleBox(7)">×</span>
+            <h3></h3>
+            <p>The premier space observatory, designed to solve mysteries in our solar system and beyond.</p>
+        </div>
+    </div>
+
+    <!-- Speech Bubble Node 1 -->
+    <div class="speech-bubble point-down" style="left: 90%; top: 17.7%;" onclick="toggleBox(8)">
+        8
+        <div id="box-8" class="info-box">
+            <span class="close-btn" onclick="event.stopPropagation(); toggleBox(8)">×</span>
+            <h3>Subsystem Integration</h3>
+            <p>A key phase where different satellite components are tested together.</p>
+        </div>
+    </div>
+
+    <!-- Speech Bubble Node 2 -->
+    <div class="speech-bubble point-up" style="left: 40%; top: 68.4%;" onclick="toggleBox(9)">
+        9
+        <div id="box-9" class="info-box">
+            <span class="close-btn" onclick="event.stopPropagation(); toggleBox(9)">×</span>
+            <h3>Flight Model Assembly</h3>
+            <p>The final version of the satellite is built, ready for launch preparations.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleBox(id) {
+        const box = document.getElementById('box-' + id);
+        const isActive = box.classList.contains('active');
+        
+        // Close all other boxes
+        document.querySelectorAll('.info-box').forEach(b => b.classList.remove('active'));
+        
+        // Toggle current box
+        if (!isActive) {
+            box.classList.add('active');
+        }
+    }
+
+    // Close box when clicking anywhere else
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.node')) {
+            document.querySelectorAll('.info-box').forEach(b => b.classList.remove('active'));
+        }
+    });
+</script>
+
+</body>
+</html>

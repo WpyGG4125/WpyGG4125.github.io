@@ -727,6 +727,22 @@
     function normaliseQuestions(arr) {
         return arr.map(q => q.type === 'slider' ? { ...q, type: 'number' } : q);
     }
+    const _preloadCache = [];
+    function preloadQuestionImages(qs) {
+        qs.forEach(q => {
+            if (!q.img) return;
+            // <link rel="preload"> lets the browser manage priority/queuing natively
+            const link = document.createElement('link');
+            link.rel = 'preload';
+            link.as = 'image';
+            link.href = q.img;
+            document.head.appendChild(link);
+            // Image ref kept in array so GC doesn't abort the in-flight request
+            const img = new Image();
+            img.src = q.img;
+            _preloadCache.push(img);
+        });
+    }
     try { const _q = localStorage.getItem('kahootQuestions'); if (_q) questions = normaliseQuestions(JSON.parse(_q)); } catch(e) {}
 
     let currentQuestionIndex = 0;
@@ -767,6 +783,7 @@
             document.getElementById('startBtn').classList.remove('d-none');
             listenToPlayers();
             showScreen('lobbyScreen');
+            preloadQuestionImages(questions);
             return;
         }
 
@@ -798,6 +815,7 @@
                 }
                 if (Array.isArray(val?.questions) && val.questions.length > 0) {
                     questions = normaliseQuestions(val.questions);
+                    preloadQuestionImages(questions);
                 }
                 if (hasSession) {
                     // Restore session: skip join screen, go straight to waiting/playing
