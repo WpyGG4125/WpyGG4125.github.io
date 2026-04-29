@@ -233,6 +233,7 @@
             font-size: 0.85rem;
             line-height: 1.4;
             margin: 0;
+            color: #fff;
         }
 
         .close-btn {
@@ -340,7 +341,7 @@
     </div>
 
     <!-- Speech Bubble Node 2 -->
-    <div class="speech-bubble point-up" style="left: 40%; top: 68.4%;" onclick="toggleBox(9)">
+    <div class="speech-bubble point-up" style="left: 40%; top: 58.5%;" onclick="toggleBox(9)">
         9
         <div id="box-9" class="info-box">
             <span class="close-btn" onclick="event.stopPropagation(); toggleBox(9)">×</span>
@@ -366,7 +367,7 @@
 
     // Close box when clicking anywhere else
     document.addEventListener('click', (e) => {
-        if (!e.target.closest('.node')) {
+        if (!e.target.closest('.node') && !e.target.closest('.speech-bubble')) {
             document.querySelectorAll('.info-box').forEach(b => b.classList.remove('active'));
         }
     });
