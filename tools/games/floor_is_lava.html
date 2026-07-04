@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#1a1030" />
+<title>Floor is Lava</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;overflow:hidden;background:#0c0718;
+    font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif;color:#fff3e0;
+    user-select:none;-webkit-user-select:none;touch-action:none;}
+  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0c0718;}
+  #game{position:relative;height:100%;width:100%;max-width:1200px;box-shadow:0 0 60px rgba(0,0,0,.6);overflow:hidden;}
+  canvas{display:block;width:100%;height:100%;}
+
+  /* Landscape game — ask portrait users to rotate */
+  #rotate{display:none;}
+  @media (orientation:portrait){
+    #rotate{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:16px;padding:30px;text-align:center;
+      background:radial-gradient(120% 90% at 50% 30%,#2b1c42,#160c26);}
+    #rotate .emo{font-size:64px;animation:rot 2.4s ease-in-out infinite;}
+    #rotate h2{font-size:24px;font-weight:900;}
+    #rotate p{font-size:14px;opacity:.75;font-weight:700;max-width:260px;line-height:1.4;}
+  }
+  @keyframes rot{0%,40%{transform:rotate(0)}70%,100%{transform:rotate(-90deg)}}
+
+  #hud{position:absolute;top:0;left:0;right:0;padding:14px 16px;display:flex;
+    justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:5;
+    text-shadow:0 2px 6px rgba(0,0,0,.7);}
+  #hud .floor{font-size:15px;font-weight:800;letter-spacing:1px;opacity:.85;}
+  #hud .floor b{font-size:40px;display:block;line-height:.9;letter-spacing:-1px;}
+  #hud .right{text-align:right;font-size:13px;font-weight:700;opacity:.85;line-height:1.5;}
+  #muteBtn{position:absolute;bottom:12px;right:12px;z-index:6;pointer-events:auto;
+    background:rgba(255,255,255,.12);border:none;border-radius:12px;width:40px;height:40px;
+    font-size:19px;color:#fff;cursor:pointer;backdrop-filter:blur(4px);}
+  #toast{position:absolute;top:34%;left:0;right:0;text-align:center;z-index:5;pointer-events:none;
+    font-size:34px;font-weight:900;color:#ffd24a;opacity:0;transform:scale(.8);
+    text-shadow:0 3px 10px rgba(0,0,0,.7);transition:opacity .2s;}
+  #toast.show{opacity:1;transform:scale(1);transition:transform .25s cubic-bezier(.2,1.4,.4,1),opacity .2s;}
+
+  .screen{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;padding:20px;overflow-y:auto;
+    background:radial-gradient(120% 90% at 50% 14%,rgba(255,120,40,.18),rgba(10,4,20,.9) 62%);
+    backdrop-filter:blur(2px);}
+  .screen.hidden{display:none;}
+  .title{font-size:clamp(40px,11vmin,86px);font-weight:900;line-height:.84;letter-spacing:-2px;
+    background:linear-gradient(180deg,#ffe27a,#ff7a3c 60%,#ff3d3d);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 4px 0 rgba(120,20,0,.55)) drop-shadow(0 10px 24px rgba(255,80,20,.35));
+    transform:rotate(-3deg);}
+  .title span{display:block;}
+  .how{margin:20px 0 4px;max-width:760px;display:flex;flex-flow:row wrap;gap:10px;justify-content:center;}
+  .how div{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;text-align:left;
+    background:rgba(255,255,255,.07);padding:10px 13px;border-radius:14px;flex:1 1 210px;max-width:250px;}
+  .how .ico{font-size:22px;min-width:28px;text-align:center;}
+  .cta{margin-top:22px;font-size:22px;font-weight:800;padding:15px 44px;border:none;border-radius:999px;
+    color:#3a1500;cursor:pointer;background:linear-gradient(180deg,#ffd24a,#ff9a2e);
+    box-shadow:0 8px 0 #b25a00,0 14px 24px rgba(255,120,20,.4);transition:transform .08s,box-shadow .08s;
+    animation:pulse 1.6s ease-in-out infinite;}
+  .cta:active{transform:translateY(6px);box-shadow:0 2px 0 #b25a00,0 6px 14px rgba(255,120,20,.4);}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.045)}}
+  .best{margin-top:20px;font-size:14px;font-weight:700;opacity:.8;letter-spacing:.5px;}
+  .gover{font-size:clamp(46px,12vmin,96px);font-weight:900;color:#ff5a3c;letter-spacing:-1px;transform:rotate(-2deg);
+    text-shadow:0 4px 0 rgba(120,20,0,.5);margin-bottom:4px;}
+  .big{font-size:clamp(18px,3.6vmin,30px);font-weight:900;line-height:1.05;}
+  .big b{font-size:clamp(64px,18vmin,150px);background:linear-gradient(180deg,#fff,#ffd24a);
+    -webkit-background-clip:text;background-clip:text;color:transparent;display:block;}
+  .newbest{color:#ffd24a;font-weight:800;font-size:16px;margin-top:6px;animation:pulse 1s infinite;}
+  .hint{font-size:12px;opacity:.6;margin-top:18px;max-width:300px;line-height:1.4;}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="game">
+    <canvas id="c"></canvas>
+
+    <div id="rotate">
+      <div class="emo">🔄</div>
+      <h2>Rotate your device</h2>
+      <p>Floor Is Lava plays in landscape — turn your phone sideways to climb.</p>
+    </div>
+
+    <div id="hud" class="hidden">
+      <div class="floor">FLOOR<b id="floorVal">0</b></div>
+      <div class="right">BEST FLOOR<br><b id="hudBest" style="font-size:22px">0</b></div>
+    </div>
+    <div id="toast"></div>
+    <button id="muteBtn" aria-label="mute">🔊</button>
+
+    <div id="startScreen" class="screen">
+      <div class="title"><span>FLOOR</span><span>IS LAVA</span></div>
+      <div class="how">
+        <div><span class="ico">🖐️</span><span>Drag the room's furniture to build a staircase up to the glowing hole.</span></div>
+        <div><span class="ico">👆</span><span>Tap &amp; hold empty space to walk Cinder there — it hops up steps on its own.</span></div>
+        <div><span class="ico">🌋</span><span>Climb floor after floor before the lava floods the room!</span></div>
+      </div>
+      <button class="cta" id="playBtn">PLAY</button>
+      <div class="best">🏆 BEST&nbsp; FLOOR <span id="startBest">0</span></div>
+    </div>
+
+    <div id="overScreen" class="screen hidden">
+      <div class="gover">MELTED!</div>
+      <div class="big">reached<b id="finalScore">0</b>floors climbed</div>
+      <div id="newBestMsg" class="newbest hidden">★ NEW RECORD! ★</div>
+      <button class="cta" id="retryBtn" style="margin-top:24px">RETRY</button>
+      <div class="hint">Tip: drag pieces into an offset <b>staircase</b> under the glowing hole — a vertical pile is just a wall!</div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+(function(){
+// ============================================================
+//  FLOOR IS LAVA — floor-climbing edition
+//  Walk the minifig, drag furniture into stairs, escape the lava.
+// ============================================================
+const canvas=document.getElementById('c'), ctx=canvas.getContext('2d');
+
+// ---------- world constants ----------
+const FLOOR_H=130;      // vertical distance between floors
+const SLAB_TH=16;       // ceiling/floor slab thickness
+const HOLE_W=96;        // width of the hole in each ceiling
+const G=1550;           // gravity
+const TERMVY=1250;
+const JUMP_H=82;        // max ledge the minifig can auto-hop
+const STEP_H=16;        // instantly stepped-over ledge
+const WALK=190;         // walk speed
+
+// ---------- responsive ----------
+let W=0,H=0,DPR=1,WALL=14,shaftL=14,shaftR=200;
+function resize(){
+  const b=document.getElementById('game').getBoundingClientRect();
+  W=Math.round(b.width); H=Math.round(b.height);
+  DPR=Math.min(window.devicePixelRatio||1,2.5);
+  canvas.width=Math.round(W*DPR); canvas.height=Math.round(H*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  WALL=Math.max(10,W*0.03); shaftL=WALL; shaftR=W-WALL;
+}
+
+// ---------- helpers ----------
+const rand=(a,b)=>a+Math.random()*(b-a);
+const randi=(a,b)=>Math.floor(rand(a,b+1));
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const choice=a=>a[(Math.random()*a.length)|0];
+const olap=(al,ar,bl,br)=>al<br&&bl<ar;
+
+// ---------- audio ----------
+const Audio={ctx:null,muted:false,
+  init(){ if(this.ctx)return; try{this.ctx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){} },
+  tone(f,d,type='square',v=0.13,slide=0){ if(this.muted||!this.ctx)return;
+    const t=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain();
+    o.type=type;o.frequency.setValueAtTime(f,t);
+    if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(40,f+slide),t+d);
+    g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+    o.connect(g);g.connect(this.ctx.destination);o.start(t);o.stop(t+d+0.02); },
+  jump(){ this.tone(420,0.10,'square',0.06,180); },
+  grab(){ this.tone(180,0.06,'sine',0.09,60); },
+  drop(){ this.tone(120,0.10,'sine',0.13,-30); },
+  floor(){ [523,659,880].forEach((f,i)=>setTimeout(()=>this.tone(f,0.13,'square',0.1),i*70)); },
+  die(){ this.tone(320,0.5,'sawtooth',0.16,-260); this.tone(160,0.6,'square',0.1,-120); },
+};
+
+// ============================================================
+//  Furniture art (drawn top-left at x,y sized w,h)
+// ============================================================
+function shade(x,y,w,h,top,side){ ctx.fillStyle=side;ctx.fillRect(x,y,w,h);
+  ctx.fillStyle=top;ctx.fillRect(x,y,w,Math.max(4,h*0.30));
+  ctx.fillStyle='rgba(0,0,0,.14)';ctx.fillRect(x,y+h-Math.max(3,h*0.16),w,Math.max(3,h*0.16)); }
+const FURN={
+  crate:{w:52,h:50,draw(x,y,w,h){ shade(x,y,w,h,'#c98f4e','#a9702f');
+    ctx.strokeStyle='rgba(70,40,10,.5)';ctx.lineWidth=3;ctx.strokeRect(x+3,y+3,w-6,h-6);
+    ctx.beginPath();ctx.moveTo(x+4,y+4);ctx.lineTo(x+w-4,y+h-4);ctx.moveTo(x+w-4,y+4);ctx.lineTo(x+4,y+h-4);ctx.stroke(); }},
+  stool:{w:44,h:42,draw(x,y,w,h){ shade(x,y,w,h*0.34,'#ff9f68','#e06a2f');
+    ctx.fillStyle='#7a3d18';ctx.fillRect(x+5,y+h*0.34,5,h*0.62);ctx.fillRect(x+w-10,y+h*0.34,5,h*0.62); }},
+  chair:{w:46,h:54,draw(x,y,w,h){ const seat=y+h*0.5;
+    ctx.fillStyle='#7c5cff';ctx.fillRect(x+w*0.12,y,w*0.16,h*0.6);
+    shade(x,seat,w,h*0.22,'#9a7bff','#6a49e0');
+    ctx.fillStyle='#4a2f9e';ctx.fillRect(x+w*0.12,seat+h*0.2,6,h*0.28);ctx.fillRect(x+w-w*0.12-6,seat+h*0.2,6,h*0.28); }},
+  tv:{w:76,h:52,draw(x,y,w,h){ ctx.fillStyle='#2a2440';ctx.fillRect(x,y,w,h*0.72);
+    ctx.fillStyle='#7fd7ff';ctx.fillRect(x+4,y+4,w-8,h*0.72-8);
+    ctx.fillStyle='rgba(255,255,255,.25)';ctx.fillRect(x+4,y+4,(w-8)*0.4,h*0.72-8);
+    ctx.fillStyle='#3a3355';ctx.fillRect(x+w*0.5-14,y+h*0.72,28,h*0.28);
+    ctx.fillStyle='#8a6b3a';ctx.fillRect(x,y+h-6,w,6); }},
+  table:{w:92,h:44,draw(x,y,w,h){ shade(x,y,w,h*0.32,'#c98f4e','#a9702f');
+    ctx.fillStyle='#6e4a22';ctx.fillRect(x+7,y+h*0.32,7,h*0.72);ctx.fillRect(x+w-14,y+h*0.32,7,h*0.72); }},
+  couch:{w:104,h:50,draw(x,y,w,h){ ctx.fillStyle='#e0556a';ctx.fillRect(x,y+h*0.15,w,h*0.85);
+    shade(x,y,w,h*0.4,'#ff7d90','#d0455a');
+    ctx.fillStyle='#ff96a6';ctx.fillRect(x+8,y+h*0.4,w*0.42,h*0.4);ctx.fillRect(x+w*0.5+2,y+h*0.4,w*0.42,h*0.4);
+    ctx.fillStyle='#c0405a';ctx.fillRect(x,y+h*0.28,10,h*0.72);ctx.fillRect(x+w-10,y+h*0.28,10,h*0.72); }},
+  bookshelf:{w:58,h:74,draw(x,y,w,h){ shade(x,y,w,h,'#a9702f','#8a5a22');
+    ctx.fillStyle='#3a2410';for(let i=1;i<4;i++)ctx.fillRect(x+4,y+i*(h/4),w-8,4);
+    const cols=['#e0556a','#7fd7ff','#ffd24a','#8ce08c','#c99bff'];
+    for(let r=0;r<4;r++)for(let bx=x+7;bx<x+w-8;bx+=8){ ctx.fillStyle=cols[(bx+r)%cols.length];
+      const bh=(h/4)*0.66;ctx.fillRect(bx,y+r*(h/4)+(h/4-bh)-2,6,bh);} }},
+  fridge:{w:56,h:76,draw(x,y,w,h){ shade(x,y,w,h,'#eef2f6','#c3ccd6');
+    ctx.fillStyle='rgba(0,0,0,.12)';ctx.fillRect(x,y+h*0.42,w,3);
+    ctx.fillStyle='#9aa6b2';ctx.fillRect(x+w-9,y+8,4,h*0.30);ctx.fillRect(x+w-9,y+h*0.5,4,h*0.30); }},
+  piano:{w:96,h:60,draw(x,y,w,h){ ctx.fillStyle='#1c1a24';ctx.fillRect(x,y,w,h);
+    ctx.fillStyle='#f4f0e8';ctx.fillRect(x+6,y+h*0.5,w-12,h*0.22);
+    ctx.fillStyle='#1c1a24';for(let kx=x+10;kx<x+w-10;kx+=9)ctx.fillRect(kx,y+h*0.5,4,h*0.13);
+    ctx.fillStyle='#332f3d';ctx.fillRect(x+4,y+4,w-8,h*0.4); }},
+};
+// spawn pool: bias toward mid pieces that stack into ~2-high stairs
+const POOL=['crate','crate','stool','stool','chair','chair','tv','tv','table','couch','bookshelf','fridge','piano'];
+
+// ============================================================
+//  Game state
+// ============================================================
+let game=null, state='menu', last=0, shake=0, flash=0;
+
+function newGame(){
+  const ch={ cx:W*0.5, by:0, w:26, h:40, vx:0, vy:0, grounded:true, face:1,
+             stepCd:0, blink:2, squash:0 };
+  game={
+    ch, slabs:[], furn:[], parts:[], embers:[],
+    maxSlab:0, lavaY:Math.max(120,H*0.34), lavaSpeed:0, camY:ch.by-H*0.66,
+    t:0, floor:0, bestFloor:0, dead:false,
+  };
+  // ground floor slab (full, no hole)
+  game.slabs.push({b:0, y:0, holeX:0, hole:false});
+  generateUpTo(3);
+  game.camY=ch.by-H*0.66;
+}
+
+// ---------- level generation ----------
+function generateUpTo(n){
+  const g=game;
+  while(g.maxSlab<n){
+    g.maxSlab++;
+    const b=g.maxSlab, y=-b*FLOOR_H;
+    const holeX=rand(shaftL+40, shaftR-HOLE_W-40);
+    g.slabs.push({b,y,holeX,hole:true});
+    spawnRoomFurniture(b-1);       // furniture that lets you reach slab b
+  }
+}
+function spawnRoomFurniture(room){
+  const g=game, floorY=-room*FLOOR_H;
+  const n=randi(3,4);
+  const span=(shaftR-shaftL-20)/n;
+  for(let i=0;i<n;i++){
+    const type=choice(POOL), f=FURN[type];
+    const x=clamp(shaftL+10+i*span+rand(4,Math.max(6,span-f.w-4)), shaftL+6, shaftR-f.w-6);
+    g.furn.push({x, y:floorY-f.h, w:f.w, h:f.h, type, room, vy:0, held:false});
+  }
+}
+
+// ---------- best score ----------
+const getBest=()=>parseInt(localStorage.getItem('lava_floor_best')||'0',10)||0;
+const setBest=v=>localStorage.setItem('lava_floor_best',String(v));
+
+// ============================================================
+//  Input — drag furniture (touch a piece) OR walk (touch empty)
+// ============================================================
+const control={ walkId:null, targetX:0, walking:false, dragId:null, piece:null, grabDX:0 };
+function toWorld(e){ const r=canvas.getBoundingClientRect();
+  return { x:(e.clientX-r.left)*(W/r.width), y:(e.clientY-r.top)*(H/r.height)+game.camY }; }
+function furnitureAt(wx,wy){
+  const g=game, pad=10;
+  for(let i=g.furn.length-1;i>=0;i--){ const f=g.furn[i];
+    if(wx>f.x-pad&&wx<f.x+f.w+pad&&wy>f.y-pad&&wy<f.y+f.h+pad) return f; }
+  return null;
+}
+canvas.addEventListener('pointerdown',e=>{
+  Audio.init(); if(Audio.ctx&&Audio.ctx.state==='suspended')Audio.ctx.resume();
+  if(state!=='play')return; e.preventDefault();
+  const p=toWorld(e), hit=furnitureAt(p.x,p.y);
+  if(hit && control.piece===null){
+    control.dragId=e.pointerId; control.piece=hit; hit.held=true; control.grabDX=hit.x-p.x; Audio.grab();
+  } else if(control.walkId===null){
+    control.walkId=e.pointerId; control.walking=true; control.targetX=p.x;
+  }
+},{passive:false});
+canvas.addEventListener('pointermove',e=>{
+  if(state!=='play')return;
+  const p=toWorld(e);
+  if(e.pointerId===control.dragId&&control.piece){
+    control.piece.x=clamp(p.x+control.grabDX, shaftL+2, shaftR-control.piece.w-2);
+  } else if(e.pointerId===control.walkId){ control.targetX=p.x; }
+});
+function endPointer(e){
+  if(e.pointerId===control.dragId&&control.piece){ control.piece.held=false; control.piece.vy=0; Audio.drop();
+    control.piece=null; control.dragId=null; }
+  if(e.pointerId===control.walkId){ control.walkId=null; control.walking=false;
+    if(game)control.targetX=game.ch.cx; }
+}
+canvas.addEventListener('pointerup',endPointer);
+canvas.addEventListener('pointercancel',endPointer);
+
+document.getElementById('playBtn').addEventListener('click',start);
+document.getElementById('retryBtn').addEventListener('click',start);
+document.getElementById('muteBtn').addEventListener('click',()=>{ Audio.init();Audio.muted=!Audio.muted;
+  document.getElementById('muteBtn').textContent=Audio.muted?'🔇':'🔊'; });
+function start(){ Audio.init(); if(Audio.ctx&&Audio.ctx.state==='suspended')Audio.ctx.resume();
+  newGame(); state='play';
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('overScreen').classList.add('hidden');
+  document.getElementById('hud').classList.remove('hidden');
+  document.getElementById('hudBest').textContent=getBest();
+  document.getElementById('floorVal').textContent='0';
+}
+
+// ============================================================
+//  Update
+// ============================================================
+function update(dt){
+  const g=game, ch=g.ch;
+  g.t+=dt;
+  generateUpTo(g.floor+3);
+
+  // lava rises, accelerating with height & time
+  g.lavaSpeed=Math.min(130, 11 + g.floor*4 + g.t*0.5);
+  g.lavaY-=g.lavaSpeed*dt;
+
+  // held furniture rides on the surface under the finger
+  if(control.piece){ const f=control.piece; f.y=restSurface(f)-f.h; }
+
+  // furniture gravity + settling
+  for(const f of g.furn){ if(f.held)continue; settle(f,dt); }
+
+  // character
+  const solids=buildSolids();
+  moveChar(dt,solids);
+  ch.blink-=dt; if(ch.blink<-0.16)ch.blink=rand(2,5);
+  ch.squash=lerp(ch.squash,0,dt*10);
+
+  // floor / score
+  const fl=Math.max(0,Math.round(-ch.by/FLOOR_H));
+  if(fl>g.floor){ g.floor=fl; document.getElementById('floorVal').textContent=fl;
+    if(fl>g.bestFloor)g.bestFloor=fl; Audio.floor(); toast('FLOOR '+fl+'!'); shake=Math.min(shake+3,8);
+    for(let k=0;k<10;k++)g.parts.push(spark(ch.cx,ch.by-20,choice(['#ffd24a','#8ce08c','#7fd7ff']))); }
+
+  // camera
+  const tgt=ch.by-H*0.66;
+  g.camY=lerp(g.camY,tgt,1-Math.pow(0.0015,dt));
+  g.camY=Math.min(g.camY, g.lavaY-H*0.30);   // keep lava from vanishing while you dawdle
+
+  // cull submerged furniture / slabs
+  for(let i=g.furn.length-1;i>=0;i--){ if(!g.furn[i].held && g.furn[i].y> g.lavaY+30) g.furn.splice(i,1); }
+  for(let i=g.slabs.length-1;i>=0;i--){ if(g.slabs[i].y> g.lavaY+H) g.slabs.splice(i,1); }
+
+  // particles + embers
+  updParts(g.parts,dt);
+  if(Math.random()<0.55)g.embers.push({x:rand(shaftL,shaftR),y:g.lavaY-2,vx:rand(-14,14),vy:rand(-70,-140),life:rand(1,2.2),t:0,r:rand(1.5,3.3)});
+  for(let i=g.embers.length-1;i>=0;i--){ const e=g.embers[i];e.t+=dt;e.x+=e.vx*dt;e.y+=e.vy*dt;e.vy+=40*dt; if(e.t>e.life)g.embers.splice(i,1); }
+
+  // death: lava reaches feet
+  if(ch.by>=g.lavaY-2 && !g.dead) die();
+
+  shake=Math.max(0,shake-dt*26); flash=Math.max(0,flash-dt*3);
+}
+
+// surface a held/settling piece should rest on (its own room only)
+function restSurface(f){
+  let top=-f.room*FLOOR_H;
+  for(const o of game.furn){ if(o===f||o.held||o.room!==f.room)continue;
+    if(olap(f.x,f.x+f.w,o.x,o.x+o.w)) top=Math.min(top,o.y); }
+  return top;
+}
+function settle(f,dt){
+  f.vy=Math.min(TERMVY,f.vy+G*dt);
+  const oldB=f.y+f.h; f.y+=f.vy*dt; const newB=f.y+f.h;
+  let restTop=Infinity; const floorTop=-f.room*FLOOR_H;
+  if(floorTop>=oldB-6)restTop=Math.min(restTop,floorTop);
+  for(const o of game.furn){ if(o===f||o.held||o.room!==f.room)continue;
+    if(olap(f.x,f.x+f.w,o.x,o.x+o.w)&&o.y>=oldB-6)restTop=Math.min(restTop,o.y); }
+  if(newB>=restTop){ f.y=restTop-f.h; f.vy=0; }
+}
+
+// solid rectangles the character collides with, near the camera
+function buildSolids(){
+  const g=game, list=[];
+  for(const s of g.slabs){ if(s.y<g.camY-80||s.y>g.camY+H+120)continue;
+    if(!s.hole){ list.push({x0:shaftL,x1:shaftR,y:s.y,h:SLAB_TH,slab:true}); }
+    else{ list.push({x0:shaftL,x1:s.holeX,y:s.y,h:SLAB_TH,slab:true});
+          list.push({x0:s.holeX+HOLE_W,x1:shaftR,y:s.y,h:SLAB_TH,slab:true}); } }
+  for(const f of g.furn){ if(f.held)continue; if(f.y>g.camY+H+80||f.y+f.h<g.camY-80)continue;
+    list.push({x0:f.x,x1:f.x+f.w,y:f.y,h:f.h,slab:false}); }
+  return list;
+}
+
+function moveChar(dt,solids){
+  const ch=game.ch;
+  // walk intent
+  let dir=0;
+  if(control.walking&&control.walkId!==null){ const dx=control.targetX-ch.cx; if(Math.abs(dx)>4)dir=dx>0?1:-1; }
+  ch.vx=dir*WALK; if(dir)ch.face=dir;
+  ch.vy=Math.min(TERMVY,ch.vy+G*dt);
+
+  // ---- horizontal ----
+  ch.cx+=ch.vx*dt;
+  ch.cx=clamp(ch.cx,shaftL+ch.w/2,shaftR-ch.w/2);
+  let blocked=false, stepTop=null;
+  let L=ch.cx-ch.w/2,R=ch.cx+ch.w/2,T=ch.by-ch.h,B=ch.by;
+  for(const s of solids){
+    if(L<s.x1&&s.x0<R&&T<s.y+s.h-1&&B>s.y+2){
+      if(ch.vx>0)ch.cx=s.x0-ch.w/2; else if(ch.vx<0)ch.cx=s.x1+ch.w/2;
+      else ch.cx=(ch.cx<(s.x0+s.x1)/2)?s.x0-ch.w/2:s.x1+ch.w/2;
+      blocked=true; stepTop=(stepTop===null)?s.y:Math.min(stepTop,s.y);
+      L=ch.cx-ch.w/2; R=ch.cx+ch.w/2;
+    }
+  }
+  ch.cx=clamp(ch.cx,shaftL+ch.w/2,shaftR-ch.w/2);
+
+  // ---- vertical ----
+  const oldB=ch.by; ch.by+=ch.vy*dt; ch.grounded=false;
+  L=ch.cx-ch.w/2; R=ch.cx+ch.w/2;
+  if(ch.vy>=0){ // land on tops
+    let landY=null;
+    for(const s of solids){ if(L<s.x1&&s.x0<R&&oldB<=s.y+2&&ch.by>=s.y){ if(landY===null||s.y<landY)landY=s.y; } }
+    if(landY!==null){ if(ch.vy>420)ch.squash=1; ch.by=landY; ch.vy=0; ch.grounded=true; }
+  } else { // head-bonk only on solid slabs (holes are passable)
+    const oldT=oldB-ch.h,newT=ch.by-ch.h; let bonk=null;
+    for(const s of solids){ if(!s.slab)continue; const ub=s.y+s.h;
+      if(L<s.x1&&s.x0<R&&oldT>=ub-2&&newT<=ub){ if(bonk===null||ub>bonk)bonk=ub; } }
+    if(bonk!==null){ ch.by=bonk+ch.h; ch.vy=0; }
+  }
+
+  // ---- climb assist ----
+  // Probe just ahead of the leading foot; deterministically pop up onto the
+  // nearest surface within hop range (avoids ballistic overshoot of narrow steps).
+  // The same rule mantles the minifig through a ceiling hole onto the next floor.
+  if(ch.grounded && dir!==0 && ch.stepCd<=0){
+    const front = dir>0 ? ch.cx+ch.w/2 : ch.cx-ch.w/2, fx=front+dir*3;
+    let best=null;
+    for(const s of solids){
+      if(fx>s.x0-7 && fx<s.x1+7){
+        const dh=ch.by-s.y;                       // >0 : top is above the feet
+        if(dh>1 && dh<=JUMP_H){ if(best===null||s.y>best.y)best=s; }  // nearest (lowest) step
+      }
+    }
+    if(best){
+      const dh=ch.by-best.y;
+      if(dh<=STEP_H){ ch.by=best.y; }             // tiny ledge: step straight up
+      else{                                        // climb up onto the step / through the hole
+        ch.by=best.y; ch.vy=0; ch.grounded=true; ch.squash=1; ch.stepCd=0.13;
+        ch.cx = dir>0 ? Math.max(ch.cx,best.x0+ch.w/2+2) : Math.min(ch.cx,best.x1-ch.w/2-2);
+        ch.cx=clamp(ch.cx,shaftL+ch.w/2,shaftR-ch.w/2);
+        Audio.jump();
+      }
+    }
+  }
+  ch.stepCd=Math.max(0,ch.stepCd-dt);
+}
+
+function die(){
+  const g=game; g.dead=true; state='dead'; Audio.die(); shake=16; flash=1;
+  for(let k=0;k<26;k++)g.parts.push(spark(g.ch.cx,g.ch.by-g.ch.h/2,choice(['#ff7a3c','#ffd24a','#ff3d3d'])));
+  const best=getBest(), isNew=g.floor>best; if(isNew)setBest(g.floor);
+  setTimeout(()=>{ document.getElementById('finalScore').textContent=g.floor;
+    document.getElementById('newBestMsg').classList.toggle('hidden',!isNew);
+    document.getElementById('overScreen').classList.remove('hidden');
+    document.getElementById('hud').classList.add('hidden'); },600);
+}
+
+// ---------- particles / toast ----------
+function spark(x,y,c){ return {x,y,vx:rand(-160,160),vy:rand(-260,-40),g:600,life:rand(.4,.9),t:0,r:rand(2,4.5),c}; }
+function updParts(a,dt){ for(let i=a.length-1;i>=0;i--){const p=a[i];p.t+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.g*dt;if(p.t>p.life)a.splice(i,1);} }
+let toastT=0; const toastEl=document.getElementById('toast');
+function toast(txt){ toastEl.textContent=txt; toastEl.classList.add('show'); toastT=1.1; }
+
+// ============================================================
+//  Render
+// ============================================================
+function render(){
+  const g=game;
+  ctx.save();
+  ctx.translate((Math.random()-0.5)*shake,(Math.random()-0.5)*shake);
+  drawBackground(g);
+  // slabs (floors/ceilings) with holes
+  for(const s of g.slabs) drawSlab(s,g);
+  // exit indicator for current target hole
+  drawExit(g);
+  // furniture
+  for(const f of g.furn){ const yy=f.y-g.camY; if(yy>H+80||yy+f.h<-80)continue;
+    ctx.fillStyle='rgba(0,0,0,.18)'; ctx.fillRect(f.x+3,yy+f.h-3,f.w,5);
+    FURN[f.type].draw(f.x,yy,f.w,f.h);
+    if(f.held){ ctx.strokeStyle='rgba(255,240,160,.9)'; ctx.lineWidth=3; ctx.strokeRect(f.x-2,yy-2,f.w+4,f.h+4); }
+  }
+  drawChar(g);
+  drawLava(g);
+  drawWalls();
+  drawParts(g.parts,g);
+  if(flash>0){ ctx.fillStyle='rgba(255,90,30,'+(flash*0.5)+')'; ctx.fillRect(-20,-20,W+40,H+40); }
+  ctx.restore();
+}
+
+function drawBackground(g){
+  const grd=ctx.createLinearGradient(0,0,0,H);
+  grd.addColorStop(0,'#3a2a55');grd.addColorStop(0.55,'#2b1c42');grd.addColorStop(1,'#1c1130');
+  ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,.025)';
+  for(let x=-40;x<W+40;x+=40)ctx.fillRect(x,0,20,H);
+  // a lit window in the middle of each room
+  for(const s of g.slabs){ const midY=(s.y - FLOOR_H*0.5)-g.camY; if(midY<-140||midY>H+140)continue;
+    drawWindow(W*0.5-46, midY-40, 92, 96); }
+}
+function drawWindow(x,y,w,h){
+  ctx.fillStyle='#6b4a2a';ctx.fillRect(x-6,y-6,w+12,h+12);
+  const sky=ctx.createLinearGradient(0,y,0,y+h);sky.addColorStop(0,'#12203f');sky.addColorStop(1,'#20385f');
+  ctx.fillStyle=sky;ctx.fillRect(x,y,w,h);
+  ctx.fillStyle='#f5e9c0';ctx.beginPath();ctx.arc(x+w*0.72,y+h*0.28,11,0,7);ctx.fill();
+  ctx.fillStyle='#22375f';ctx.beginPath();ctx.arc(x+w*0.66,y+h*0.24,10,0,7);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.7)';for(let i=0;i<5;i++)ctx.fillRect(x+((i*31)%w)+6,y+((i*47)%(h-18))+8,2,2);
+  ctx.fillStyle='#8a5a2e';ctx.fillRect(x+w/2-2,y,4,h);ctx.fillRect(x,y+h/2-2,w,4);
+}
+function drawWalls(){
+  let lg=ctx.createLinearGradient(0,0,WALL,0);lg.addColorStop(0,'#241636');lg.addColorStop(1,'rgba(36,22,54,0)');
+  ctx.fillStyle=lg;ctx.fillRect(0,0,WALL,H);
+  let rg=ctx.createLinearGradient(W-WALL,0,W,0);rg.addColorStop(0,'rgba(36,22,54,0)');rg.addColorStop(1,'#241636');
+  ctx.fillStyle=rg;ctx.fillRect(W-WALL,0,WALL,H);
+}
+function drawSlab(s,g){
+  const yy=s.y-g.camY; if(yy>H+40||yy+80<-40)return;
+  const paint=(x0,x1)=>{ ctx.fillStyle='#5a3a1e';ctx.fillRect(x0,yy,x1-x0,SLAB_TH);
+    ctx.fillStyle='#6e4a26';ctx.fillRect(x0,yy,x1-x0,5);
+    ctx.fillStyle='rgba(0,0,0,.22)';for(let x=x0;x<x1;x+=30)ctx.fillRect(x,yy,2,SLAB_TH);
+    if(s.b===0){ ctx.fillStyle='#42280f';ctx.fillRect(x0,yy+SLAB_TH,x1-x0,60);} };
+  if(!s.hole){ paint(shaftL,shaftR); }
+  else { paint(shaftL,s.holeX); paint(s.holeX+HOLE_W,shaftR);
+    // hole rim highlight
+    ctx.fillStyle='rgba(255,200,120,.25)';
+    ctx.fillRect(s.holeX-3,yy,3,SLAB_TH); ctx.fillRect(s.holeX+HOLE_W,yy,3,SLAB_TH); }
+}
+function drawExit(g){
+  const target=g.slabs.find(s=>s.b===g.floor+1); if(!target)return;
+  const cx=target.holeX+HOLE_W/2, yy=target.y-g.camY;
+  if(yy<-30||yy>H+30)return;
+  const bob=Math.sin(g.t*4)*4;
+  // downlight column so player sees where to build
+  const col=ctx.createLinearGradient(0,yy,0,yy+FLOOR_H);
+  col.addColorStop(0,'rgba(140,224,140,.22)');col.addColorStop(1,'rgba(140,224,140,0)');
+  ctx.fillStyle=col; ctx.fillRect(target.holeX,yy,HOLE_W,FLOOR_H);
+  // arrow + label
+  ctx.fillStyle='#8ce08c'; ctx.font='800 12px Trebuchet MS'; ctx.textAlign='center';
+  ctx.fillText('EXIT',cx,yy-18-bob);
+  ctx.beginPath();ctx.moveTo(cx,yy-6-bob);ctx.lineTo(cx-9,yy-15-bob);ctx.lineTo(cx+9,yy-15-bob);ctx.closePath();ctx.fill();
+  ctx.textAlign='left';
+}
+function drawLava(g){
+  const ly=g.lavaY-g.camY; if(ly>H+40)return; const top=Math.max(-40,ly), t=g.t;
+  const gl=ctx.createLinearGradient(0,top-70,0,top+10);gl.addColorStop(0,'rgba(255,90,20,0)');gl.addColorStop(1,'rgba(255,120,30,.35)');
+  ctx.fillStyle=gl;ctx.fillRect(0,top-70,W,80);
+  const bg=ctx.createLinearGradient(0,top,0,H);
+  bg.addColorStop(0,'#ffd24a');bg.addColorStop(0.12,'#ff8a2c');bg.addColorStop(0.5,'#ff3d1e');bg.addColorStop(1,'#a11208');
+  ctx.fillStyle=bg;ctx.beginPath();ctx.moveTo(0,top);
+  for(let x=0;x<=W;x+=12){const y=top+Math.sin(x*0.045+t*3)*5+Math.sin(x*0.11+t*4.5)*3;ctx.lineTo(x,y);}
+  ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(255,240,180,.85)';ctx.lineWidth=3;ctx.beginPath();
+  for(let x=0;x<=W;x+=12){const y=top+Math.sin(x*0.045+t*3)*5+Math.sin(x*0.11+t*4.5)*3;x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+  ctx.stroke();
+  ctx.fillStyle='rgba(255,220,120,.5)';
+  for(let i=0;i<7;i++){const bx=(i*97+t*30*(i%3+1))%W;const by=top+30+((i*53+t*40)%Math.max(30,H-top-30));ctx.beginPath();ctx.arc(bx,by,3+(i%3),0,7);ctx.fill();}
+  for(const e of g.embers){const a=1-e.t/e.life;ctx.globalAlpha=a;ctx.fillStyle=a>0.5?'#ffd24a':'#ff5a2c';ctx.beginPath();ctx.arc(e.x,e.y-g.camY,e.r,0,7);ctx.fill();}
+  ctx.globalAlpha=1;
+}
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+// "Cinder" — an original round, big-eyed climber creature (not a minifig).
+function drawChar(g){
+  const mf=g.ch, cx=mf.cx, by=mf.by-g.camY;
+  const sq=clamp(mf.squash,-0.7,1), f=mf.face;
+  const walk=mf.grounded&&Math.abs(mf.vx)>10, air=!mf.grounded;
+  const scared=air || (g.lavaY-mf.by)<70;                 // wide-eyed when jumping/near lava
+  const bw=mf.w*(1.22+sq*0.10), bh=mf.h*(1.02-sq*0.13);
+  const legLen=Math.max(6,bh*0.17), topY=-bh, botY=-legLen, legW=bw*0.24;
+  ctx.save(); ctx.translate(cx,by);
+
+  if(mf.grounded){ ctx.fillStyle='rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0,2,mf.w*0.76,4.5,0,0,7); ctx.fill(); }
+
+  // ---- tail (behind, opposite the facing direction), swishing ----
+  const ts=-f, sway=Math.sin(g.t*7)*0.45+(walk?Math.sin(g.t*16)*0.12:0);
+  ctx.save(); ctx.translate(ts*bw*0.30, botY-bh*0.05); ctx.scale(ts*0.8,0.8); ctx.rotate(0.5+sway);
+  ctx.fillStyle='#159b90'; ctx.beginPath();
+  ctx.moveTo(0,3); ctx.quadraticCurveTo(20,4,22,-14); ctx.quadraticCurveTo(23,-31,11,-32);
+  ctx.quadraticCurveTo(19,-26,15,-12); ctx.quadraticCurveTo(12,0,0,-5); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#ffe3c4'; ctx.beginPath(); ctx.arc(14,-30,4.2,0,7); ctx.fill();
+  ctx.restore();
+
+  // ---- legs ----
+  const st=walk?Math.sin(g.t*18)*3:0;
+  const leg=(x,up)=>{ ctx.fillStyle='#159b90'; roundRect(x-legW/2, botY, legW, (0-botY)-Math.max(0,up), legW*0.5); ctx.fill();
+    ctx.fillStyle='#0f7a72'; ctx.beginPath(); ctx.ellipse(x,-Math.max(0,up),legW*0.62,3.4,0,0,7); ctx.fill(); };
+  leg(-bw*0.22, air?8:Math.max(0,st));
+  leg( bw*0.22, air?8:Math.max(0,-st));
+
+  // ---- body (teal capsule) ----
+  const grd=ctx.createLinearGradient(0,topY,0,botY); grd.addColorStop(0,'#33dccb'); grd.addColorStop(1,'#16a89c');
+  ctx.fillStyle=grd; roundRect(-bw/2,topY,bw,botY-topY,bw*0.46); ctx.fill();
+  // belly patch
+  ctx.fillStyle='#ffe6c9'; ctx.beginPath(); ctx.ellipse(0,botY-bh*0.24,bw*0.30,bh*0.27,0,0,7); ctx.fill();
+
+  // ---- ears ----
+  const earY=topY+bh*0.05;
+  ctx.fillStyle='#16a89c';
+  const ear=(s)=>{ ctx.beginPath(); ctx.moveTo(s*bw*0.32,earY+7); ctx.lineTo(s*bw*0.17,earY-bh*0.22); ctx.lineTo(s*bw*0.01,earY+3); ctx.closePath(); ctx.fill(); };
+  ear(-1); ear(1);
+  ctx.fillStyle='#ff8a6b';
+  const earIn=(s)=>{ ctx.beginPath(); ctx.moveTo(s*bw*0.25,earY+3); ctx.lineTo(s*bw*0.155,earY-bh*0.13); ctx.lineTo(s*bw*0.08,earY+1); ctx.closePath(); ctx.fill(); };
+  earIn(-1); earIn(1);
+
+  // ---- arms ----
+  ctx.fillStyle='#1aa89c';
+  const armY=topY+bh*0.48;
+  if(air){ ctx.save(); ctx.translate(-bw*0.45,armY); ctx.rotate(-1.0); roundRect(-4,0,8,bh*0.32,4); ctx.fill(); ctx.restore();
+           ctx.save(); ctx.translate( bw*0.45,armY); ctx.rotate(1.0); roundRect(-4,0,8,bh*0.32,4); ctx.fill(); ctx.restore(); }
+  else { roundRect(-bw*0.5,armY,8,bh*0.30,4); ctx.fill(); roundRect(bw*0.5-8,armY,8,bh*0.30,4); ctx.fill(); }
+
+  // ---- face ----
+  const eyeY=topY+bh*0.36, eDX=bw*0.19, look=f*1.8, eR=bw*0.155*(scared?1.12:1);
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.ellipse(-eDX,eyeY,eR,bh*0.16*(scared?1.12:1),0,0,7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( eDX,eyeY,eR,bh*0.16*(scared?1.12:1),0,0,7); ctx.fill();
+  const blink=mf.blink<0;
+  if(blink){ ctx.strokeStyle='#20303a'; ctx.lineWidth=2; ctx.beginPath();
+    ctx.moveTo(-eDX-4,eyeY); ctx.lineTo(-eDX+4,eyeY); ctx.moveTo(eDX-4,eyeY); ctx.lineTo(eDX+4,eyeY); ctx.stroke(); }
+  else { ctx.fillStyle='#20303a';
+    ctx.beginPath(); ctx.arc(-eDX+look,eyeY-1,bw*0.08,0,7); ctx.arc(eDX+look,eyeY-1,bw*0.08,0,7); ctx.fill();
+    ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.arc(-eDX+look-1.6,eyeY-3,1.3,0,7); ctx.arc(eDX+look-1.6,eyeY-3,1.3,0,7); ctx.fill(); }
+  // blush
+  ctx.fillStyle='rgba(255,120,120,.4)';
+  ctx.beginPath(); ctx.ellipse(-bw*0.31,eyeY+bh*0.12,4,2.6,0,0,7); ctx.ellipse(bw*0.31,eyeY+bh*0.12,4,2.6,0,0,7); ctx.fill();
+  // nose + mouth
+  ctx.fillStyle='#ff7a5c'; ctx.beginPath(); ctx.moveTo(-2.4,eyeY+bh*0.11); ctx.lineTo(2.4,eyeY+bh*0.11); ctx.lineTo(0,eyeY+bh*0.16); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#b3452f'; ctx.lineWidth=1.5;
+  if(scared){ ctx.beginPath(); ctx.ellipse(0,eyeY+bh*0.22,2.6,3.1,0,0,7); ctx.stroke(); }
+  else { ctx.beginPath(); ctx.moveTo(-3.4,eyeY+bh*0.19); ctx.quadraticCurveTo(0,eyeY+bh*0.25,3.4,eyeY+bh*0.19); ctx.stroke(); }
+
+  ctx.restore();
+}
+function drawParts(a,g){ for(const p of a){const al=1-p.t/p.life;ctx.globalAlpha=Math.max(0,al);ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(p.x,p.y-g.camY,p.r,0,7);ctx.fill();} ctx.globalAlpha=1; }
+
+// ============================================================
+//  Loop
+// ============================================================
+function frame(ts){
+  const dt=Math.min(0.033,(ts-last)/1000||0); last=ts;
+  if(state==='play')update(dt);
+  else if(game){ game.t+=dt; updParts(game.parts,dt); shake=Math.max(0,shake-dt*26); flash=Math.max(0,flash-dt*3); }
+  if(toastT>0){ toastT-=dt; if(toastT<=0)toastEl.classList.remove('show'); }
+  if(game)render(); else {ctx.fillStyle='#1c1130';ctx.fillRect(0,0,W,H);}
+  requestAnimationFrame(frame);
+}
+function initMenu(){ newGame(); state='menu'; document.getElementById('startBest').textContent=getBest(); }
+window.addEventListener('resize',resize);
+document.addEventListener('visibilitychange',()=>{ if(document.hidden)last=0; });
+resize(); initMenu(); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
