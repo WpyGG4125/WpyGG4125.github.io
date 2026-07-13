@@ -34,16 +34,28 @@
     justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:5;
     text-shadow:0 2px 6px rgba(0,0,0,.7);}
   #hud.hidden{display:none;}
-  #hud .floor{font-size:14px;font-weight:800;letter-spacing:1px;opacity:.85;}
+  #hud .floor{font-size:14px;font-weight:800;letter-spacing:1px;opacity:.9;}
   #hud .floor b{font-size:34px;display:block;line-height:.9;letter-spacing:-1px;}
-  #hud .right{text-align:right;font-size:12px;font-weight:700;opacity:.85;line-height:1.5;}
-  #muteBtn{position:absolute;top:12px;right:50%;transform:translateX(50%);z-index:6;pointer-events:auto;
-    background:rgba(255,255,255,.12);border:none;border-radius:12px;width:38px;height:38px;
+  #hud .floor .score{font-size:13px;font-weight:800;color:#ffd24a;display:block;margin-top:3px;}
+  #hud .right{text-align:right;font-size:12px;font-weight:700;opacity:.9;line-height:1.5;}
+  #hud .right .coins{color:#ffd24a;font-size:14px;}
+  #fxBar{position:absolute;top:58px;left:50%;transform:translateX(-50%);z-index:5;display:flex;gap:6px;pointer-events:none;}
+  .chip{background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.25);border-radius:999px;
+    padding:3px 11px;font-size:12px;font-weight:800;backdrop-filter:blur(3px);white-space:nowrap;}
+  .chip.freeze{color:#9fdcff;border-color:rgba(159,220,255,.5);}
+  .chip.boost{color:#ffe27a;border-color:rgba(255,226,122,.5);}
+  .chip.shield{color:#c7ffd0;border-color:rgba(140,224,140,.5);}
+
+  #topBtns{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:6;display:flex;gap:8px;}
+  #topBtns button{background:rgba(255,255,255,.12);border:none;border-radius:12px;width:38px;height:38px;
     font-size:18px;color:#fff;cursor:pointer;backdrop-filter:blur(4px);}
+  #pauseBtn.hidden{display:none;}
+
   #toast{position:absolute;top:26%;left:0;right:0;text-align:center;z-index:5;pointer-events:none;
     font-size:30px;font-weight:900;color:#ffd24a;opacity:0;transform:scale(.8);
     text-shadow:0 3px 10px rgba(0,0,0,.7);transition:opacity .2s;}
   #toast.show{opacity:1;transform:scale(1);transition:transform .25s cubic-bezier(.2,1.4,.4,1),opacity .2s;}
+  #toast.warn{color:#ff6a4a;}
 
   /* ---------- touch control pad ---------- */
   #pad{position:absolute;inset:0;z-index:6;pointer-events:none;}
@@ -74,24 +86,32 @@
     filter:drop-shadow(0 4px 0 rgba(120,20,0,.55)) drop-shadow(0 10px 24px rgba(255,80,20,.35));
     transform:rotate(-3deg);}
   .title span{display:block;}
-  .how{margin:18px 0 4px;max-width:820px;display:flex;flex-flow:row wrap;gap:10px;justify-content:center;}
+  .how{margin:18px 0 4px;max-width:860px;display:flex;flex-flow:row wrap;gap:10px;justify-content:center;}
   .how div{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:700;text-align:left;
     background:rgba(255,255,255,.07);padding:9px 12px;border-radius:14px;flex:1 1 200px;max-width:250px;}
   .how .ico{font-size:20px;min-width:26px;text-align:center;}
+  kbd{background:rgba(255,255,255,.16);border-radius:5px;padding:1px 6px;font-size:11px;font-family:inherit;
+    border-bottom:2px solid rgba(0,0,0,.4);}
   .cta{margin-top:20px;font-size:22px;font-weight:800;padding:15px 44px;border:none;border-radius:999px;
     color:#3a1500;cursor:pointer;background:linear-gradient(180deg,#ffd24a,#ff9a2e);
     box-shadow:0 8px 0 #b25a00,0 14px 24px rgba(255,120,20,.4);transition:transform .08s,box-shadow .08s;
     animation:pulse 1.6s ease-in-out infinite;}
   .cta:active{transform:translateY(6px);box-shadow:0 2px 0 #b25a00,0 6px 14px rgba(255,120,20,.4);}
+  .cta.quiet{animation:none;background:rgba(255,255,255,.14);color:#fff;box-shadow:0 6px 0 rgba(0,0,0,.35);}
   @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.045)}}
-  .best{margin-top:18px;font-size:14px;font-weight:700;opacity:.8;letter-spacing:.5px;}
+  .best{margin-top:18px;font-size:14px;font-weight:700;opacity:.8;letter-spacing:.5px;line-height:1.7;}
   .gover{font-size:clamp(44px,11vmin,90px);font-weight:900;color:#ff5a3c;letter-spacing:-1px;transform:rotate(-2deg);
     text-shadow:0 4px 0 rgba(120,20,0,.5);margin-bottom:4px;}
   .big{font-size:clamp(18px,3.6vmin,28px);font-weight:900;line-height:1.05;}
   .big b{font-size:clamp(60px,17vmin,140px);background:linear-gradient(180deg,#fff,#ffd24a);
     -webkit-background-clip:text;background-clip:text;color:transparent;display:block;}
-  .newbest{color:#ffd24a;font-weight:800;font-size:16px;margin-top:6px;animation:pulse 1s infinite;}
-  .hint{font-size:12px;opacity:.6;margin-top:16px;max-width:320px;line-height:1.4;}
+  .stats{margin-top:14px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+  .stats div{background:rgba(255,255,255,.08);border-radius:14px;padding:9px 18px;font-size:12px;font-weight:700;opacity:.9;}
+  .stats div b{display:block;font-size:20px;color:#ffd24a;}
+  .newbest{color:#ffd24a;font-weight:800;font-size:16px;margin-top:10px;animation:pulse 1s infinite;}
+  .hint{font-size:12px;opacity:.6;margin-top:16px;max-width:340px;line-height:1.4;}
+  .ptitle{font-size:clamp(36px,8vmin,64px);font-weight:900;letter-spacing:-1px;color:#ffd24a;
+    text-shadow:0 4px 0 rgba(120,60,0,.5);margin-bottom:6px;}
 </style>
 </head>
 <body>
@@ -106,11 +126,15 @@
     </div>
 
     <div id="hud" class="hidden">
-      <div class="floor">FLOOR<b id="floorVal">0</b></div>
-      <div class="right">BEST FLOOR<br><b id="hudBest" style="font-size:20px">0</b></div>
+      <div class="floor">FLOOR<b id="floorVal">0</b><span class="score"><span id="scoreVal">0</span> PTS</span></div>
+      <div class="right">BEST FLOOR <b id="hudBest">0</b><br><span class="coins">🪙 <span id="coinVal">0</span></span></div>
     </div>
+    <div id="fxBar"></div>
     <div id="toast"></div>
-    <button id="muteBtn" aria-label="mute">🔊</button>
+    <div id="topBtns">
+      <button id="muteBtn" aria-label="mute">🔊</button>
+      <button id="pauseBtn" class="hidden" aria-label="pause">⏸</button>
+    </div>
 
     <!-- touch controls -->
     <div id="pad" class="hidden">
@@ -123,21 +147,28 @@
 
     <div id="startScreen" class="screen">
       <div class="title"><span>FLOOR</span><span>IS LAVA</span></div>
-      <div class="how">
-        <div><span class="ico">🕹️</span><span>Use the ◀ ▶ buttons to walk Cinder left and right.</span></div>
-        <div><span class="ico">▲</span><span>Press <b>▲</b> to climb furniture beside you — or jump when there's only air above your head.</span></div>
-        <div><span class="ico">✊</span><span>Hold <b>DRAG</b> while standing next to a piece to carry it, then release to drop it and build a staircase.</span></div>
-        <div><span class="ico">🌋</span><span>Stack furniture up to the glowing hole and climb floor after floor before the lava burns it all away!</span></div>
-      </div>
+      <div class="how" id="howBox"></div>
       <button class="cta" id="playBtn">PLAY</button>
-      <div class="best">🏆 BEST&nbsp; FLOOR <span id="startBest">0</span></div>
+      <div class="best">🏆 BEST FLOOR <span id="startBest">0</span> &nbsp;·&nbsp; ⭐ BEST SCORE <span id="startBestScore">0</span></div>
+    </div>
+
+    <div id="pauseScreen" class="screen hidden">
+      <div class="ptitle">PAUSED</div>
+      <div class="hint" style="margin-top:0">The lava waits for no one… but it waits for pause.</div>
+      <button class="cta" id="resumeBtn" style="margin-top:26px">RESUME</button>
+      <button class="cta quiet" id="quitBtn" style="margin-top:14px;font-size:16px;padding:11px 34px">QUIT TO MENU</button>
     </div>
 
     <div id="overScreen" class="screen hidden">
       <div class="gover">MELTED!</div>
       <div class="big">reached<b id="finalScore">0</b>floors climbed</div>
+      <div class="stats">
+        <div>SCORE<b id="stScore">0</b></div>
+        <div>COINS<b id="stCoins">0</b></div>
+        <div>TIME<b id="stTime">0s</b></div>
+      </div>
       <div id="newBestMsg" class="newbest hidden">★ NEW RECORD! ★</div>
-      <button class="cta" id="retryBtn" style="margin-top:24px">RETRY</button>
+      <button class="cta" id="retryBtn" style="margin-top:20px">RETRY</button>
       <div class="hint">Tip: build an <b>offset staircase</b> under the glowing hole — the lava eats the lowest pieces first, so keep climbing!</div>
     </div>
   </div>
@@ -148,8 +179,9 @@
 (function(){
 // ============================================================
 //  FLOOR IS LAVA — physics edition (Matter.js)
-//  Button-driven climber. Real rigid-body furniture: it stacks,
-//  topples, falls and burns away as the lava rises.
+//  Button/keyboard-driven climber. Real rigid-body furniture:
+//  it stacks, topples, falls and burns away as the lava rises.
+//  Coins, power-ups, lava surges, combo scoring, pause, music.
 // ============================================================
 const { Engine, Bodies, Body, Composite, Query } = Matter;
 const canvas=document.getElementById('c'), ctx=canvas.getContext('2d');
@@ -157,16 +189,23 @@ const canvas=document.getElementById('c'), ctx=canvas.getContext('2d');
 // ---------- tunable constants (px / physics units) ----------
 const GRAV=1.3;             // world gravity
 const WALK=5.0;            // horizontal walk speed (px/step)
-const JUMP_V=13.6;        // jump launch velocity (only air above)
-const CLIMB_V=10.8;       // climb boost velocity (furniture beside you)
-const CLIMB_FWD=4.6;      // forward nudge while climbing onto a ledge
+const AIR_CTRL=0.55;       // fraction of walk speed steerable mid-air
+const JUMP_V=13.6;         // jump launch velocity (only air above)
+const CLIMB_V=10.8;        // climb boost velocity (furniture beside you)
+const CLIMB_FWD=4.6;       // forward nudge while climbing onto a ledge
 const UP_CD=0.20, DOWN_CD=0.24;   // seconds between climb/jump taps while held
-const CLIMB_REACH=46;     // tallest ledge that counts as "climbable"
-const GRAB=18;            // reach for grabbing furniture to drag
-const SLAB_TH=20;         // floor/ceiling slab thickness
-const HOLE_W=66;          // width of the hole in each ceiling
-const BURN_RATE=0.34;     // burn progress per second once touched by lava
-const CH_W=22, CH_H=30;   // character size (small)
+const COYOTE=0.12;         // grace period to jump after walking off an edge
+const JBUF=0.15;           // jump input buffered before landing
+const CLIMB_REACH=46;      // tallest ledge that counts as "climbable"
+const GRAB=18;             // reach for grabbing furniture to drag
+const SLAB_TH=20;          // floor/ceiling slab thickness
+const HOLE_W=66;           // width of the hole in each ceiling
+const BURN_RATE=0.34;      // burn progress per second once touched by lava
+const CH_W=22, CH_H=30;    // character size (small)
+const PICK_R=22;           // pickup collection radius
+const QUICK_FLOOR=9;       // seconds — faster than this earns a speed bonus
+// power-up durations (seconds)
+const FREEZE_T=5, BOOST_T=8;
 
 // ---------- responsive ----------
 let W=0,H=0,DPR=1,WALL=10,shaftL=10,shaftR=200,FLOOR_H=340;
@@ -189,19 +228,43 @@ const choice=a=>a[(Math.random()*a.length)|0];
 // ---------- audio ----------
 const Audio={ctx:null,muted:false,
   init(){ if(this.ctx)return; try{this.ctx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){} },
-  tone(f,d,type='square',v=0.13,slide=0){ if(this.muted||!this.ctx)return;
-    const t=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain();
+  tone(f,d,type='square',v=0.13,slide=0,when=0){ if(this.muted||!this.ctx)return;
+    const t=this.ctx.currentTime+when,o=this.ctx.createOscillator(),g=this.ctx.createGain();
     o.type=type;o.frequency.setValueAtTime(f,t);
     if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(40,f+slide),t+d);
     g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(0.0001,t+d);
     o.connect(g);g.connect(this.ctx.destination);o.start(t);o.stop(t+d+0.02); },
   jump(){ this.tone(430,0.10,'square',0.06,180); },
   climb(){ this.tone(300,0.07,'square',0.05,120); },
+  land(){ this.tone(140,0.07,'sine',0.09,-40); },
   grab(){ this.tone(180,0.06,'sine',0.09,60); },
   drop(){ this.tone(120,0.10,'sine',0.13,-30); },
+  coin(){ this.tone(988,0.06,'square',0.06); this.tone(1319,0.12,'square',0.06,0,0.06); },
+  power(){ [440,554,659,880].forEach((f,i)=>this.tone(f,0.1,'triangle',0.09,0,i*0.06)); },
+  shieldPop(){ this.tone(660,0.14,'triangle',0.12,-200); this.tone(330,0.2,'square',0.08,120,0.05); },
+  bonus(){ this.tone(784,0.08,'square',0.07); this.tone(988,0.14,'square',0.07,0,0.08); },
+  surge(){ this.tone(80,0.5,'sawtooth',0.1,60); this.tone(60,0.6,'square',0.06,30,0.1); },
+  pause(){ this.tone(500,0.08,'sine',0.07,-160); },
   floor(){ [523,659,880].forEach((f,i)=>setTimeout(()=>this.tone(f,0.13,'square',0.1),i*70)); },
   fire(){ this.tone(90,0.12,'sawtooth',0.05,-30); },
   die(){ this.tone(320,0.5,'sawtooth',0.16,-260); this.tone(160,0.6,'square',0.1,-120); },
+};
+
+// ---------- music — tiny chiptune loop, plays during runs ----------
+const Music={timer:null,step:0,
+  lead:[440,0,523,0,659,523,587,0, 440,0,523,0,698,659,587,523,
+        392,0,494,0,587,494,523,0, 440,0,554,659,880,659,554,440],
+  bass:[110,110,131,131, 98,98,110,110, 98,98,123,123, 110,110,110,131],
+  start(){ if(this.timer)return; this.step=0;
+    this.timer=setInterval(()=>{
+      if(Audio.muted||!Audio.ctx)return;
+      const s=this.step;
+      const n=this.lead[s%this.lead.length];
+      if(n)Audio.tone(n,0.12,'triangle',0.035);
+      if(s%2===0)Audio.tone(this.bass[(s>>1)%this.bass.length],0.2,'sine',0.05);
+      this.step++;
+    },150); },
+  stop(){ if(this.timer){clearInterval(this.timer);this.timer=null;} },
 };
 
 // ============================================================
@@ -261,8 +324,9 @@ const shadeHex=(hex,amt)=>{ const n=parseInt(hex.slice(1),16);
 //  Game state
 // ============================================================
 let engine=null, world=null;
-let game=null, state='menu', last=0, shake=0, flash=0;
+let game=null, state='menu', last=0, shake=0, flash=0, freezeFlash=0;
 const keys={left:false,right:false,up:false,down:false,drag:false};
+let upEdge=false;   // set on the frame ▲ / jump is first pressed
 
 function newGame(){
   if(engine) Composite.clear(engine.world,false,true);
@@ -270,10 +334,14 @@ function newGame(){
   world=engine.world;
   FLOOR_H=clamp(Math.round(H*0.9),300,640);
 
-  game={ statics:[], furn:[], parts:[], embers:[], slabMeta:[],
+  game={ statics:[], furn:[], parts:[], embers:[], slabMeta:[], pickups:[],
     maxLevel:0, grab:null, upCd:0, downCd:0,
+    coyote:0, jbuf:0, wasGrounded:true, prevVy:0, squash:0,
     lavaY:FLOOR_H*0.85, lavaSpeed:0, camY:0,
-    t:0, floor:0, reached:0, dead:false };
+    t:0, floor:0, reached:0, dead:false,
+    score:0, coins:0, lastFloorT:0,
+    freezeT:0, boostT:0, shield:false, invulnT:0,
+    surgeT:0, surgeWarnT:0, nextSurge:rand(22,32) };
 
   // character body (fixed rotation)
   const cy=-CH_H/2-1;
@@ -314,6 +382,7 @@ function generateUpTo(n){
     g.maxLevel++;
     makeSlab(g.maxLevel);
     spawnFurniture(g.maxLevel-1);   // pieces on the floor below, to reach this slab
+    spawnPickups(g.maxLevel-1);
   }
 }
 function spawnFurniture(level){
@@ -331,12 +400,31 @@ function spawnFurniture(level){
     g.furn.push(b); Composite.add(world,b);
   }
 }
+function spawnPickups(level){
+  if(level<1)return;              // nothing on the very first floor
+  const g=game, floorTop=-level*FLOOR_H;
+  // 2–3 coins per floor, spread across the room at reachable heights
+  const nCoins=randi(2,3);
+  for(let i=0;i<nCoins;i++){
+    g.pickups.push({ type:'coin',
+      x:rand(shaftL+30,shaftR-30),
+      y:floorTop-rand(34,FLOOR_H*0.55) });
+  }
+  // occasional power-up, sitting low so it's easy to grab
+  if(Math.random()<0.32){
+    g.pickups.push({ type:choice(['freeze','boost','shield']),
+      x:rand(shaftL+40,shaftR-40),
+      y:floorTop-rand(30,60) });
+  }
+}
 function removeFurn(b){ const g=game; const i=g.furn.indexOf(b); if(i>=0)g.furn.splice(i,1);
   if(g.grab===b)g.grab=null; Composite.remove(world,b); }
 
 // ---------- best score ----------
 const getBest=()=>parseInt(localStorage.getItem('lava_floor_best')||'0',10)||0;
 const setBest=v=>localStorage.setItem('lava_floor_best',String(v));
+const getBestScore=()=>parseInt(localStorage.getItem('lava_score_best')||'0',10)||0;
+const setBestScore=v=>localStorage.setItem('lava_score_best',String(v));
 
 // ============================================================
 //  Queries against the physics world
@@ -377,7 +465,7 @@ function grabTarget(){
 }
 
 // ============================================================
-//  Input — control pad buttons (multitouch)
+//  Input — control pad buttons (multitouch) + keyboard
 // ============================================================
 let fsTried=false;
 function goFullscreen(){
@@ -390,10 +478,10 @@ function goFullscreen(){
     if(screen.orientation&&screen.orientation.lock){ const p=screen.orientation.lock('landscape'); if(p&&p.catch)p.catch(()=>{}); }
   }catch(e){}
 }
-function firstGesture(){ Audio.init(); if(Audio.ctx&&Audio.ctx.state==='suspended')Audio.ctx.resume(); if(!fsTried){fsTried=true;} goFullscreen(); }
+function firstGesture(){ Audio.init(); if(Audio.ctx&&Audio.ctx.state==='suspended')Audio.ctx.resume(); if(!fsTried){fsTried=true;} if(isTouch)goFullscreen(); }
 function bindBtn(id,key){
   const el=document.getElementById(id);
-  const on=e=>{ e.preventDefault(); firstGesture(); keys[key]=true; el.classList.add('on');
+  const on=e=>{ e.preventDefault(); firstGesture(); if(!keys[key]&&key==='up')upEdge=true; keys[key]=true; el.classList.add('on');
     try{el.setPointerCapture&&el.setPointerCapture(e.pointerId);}catch(_){} };
   const off=e=>{ if(e)e.preventDefault(); keys[key]=false; el.classList.remove('on'); };
   el.addEventListener('pointerdown',on,{passive:false});
@@ -404,19 +492,81 @@ function bindBtn(id,key){
 bindBtn('btnUp','up'); bindBtn('btnDown','down'); bindBtn('btnLeft','left'); bindBtn('btnRight','right'); bindBtn('btnDrag','drag');
 canvas.addEventListener('pointerdown',e=>{ firstGesture(); },{passive:true});
 
+// keyboard — arrows/WASD move, Space/W/↑ jump, E or Shift drags, P/Esc pause, R retry
+const KEYMAP={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',
+  ArrowUp:'up',KeyW:'up',Space:'up',ArrowDown:'down',KeyS:'down',
+  KeyE:'drag',ShiftLeft:'drag',ShiftRight:'drag'};
+window.addEventListener('keydown',e=>{
+  if(e.code==='Escape'||e.code==='KeyP'){ if(state==='play')pauseGame(); else if(state==='pause')resumeGame(); return; }
+  if(state==='menu'&&(e.code==='Enter'||e.code==='Space')){ e.preventDefault(); start(); return; }
+  if(state==='dead'&&(e.code==='Enter'||e.code==='KeyR')&&!document.getElementById('overScreen').classList.contains('hidden')){ start(); return; }
+  const k=KEYMAP[e.code]; if(!k)return;
+  e.preventDefault(); firstGesture();
+  if(!keys[k]&&k==='up'&&!e.repeat)upEdge=true;
+  keys[k]=true;
+},{passive:false});
+window.addEventListener('keyup',e=>{ const k=KEYMAP[e.code]; if(k){e.preventDefault();keys[k]=false;} },{passive:false});
+
+const isTouch=('ontouchstart'in window)||navigator.maxTouchPoints>0||matchMedia('(pointer:coarse)').matches;
+
+// how-to-play cards: tailored to input device
+function buildHow(){
+  const box=document.getElementById('howBox');
+  const cards= isTouch ? [
+    ['🕹️','Use the ◀ ▶ buttons to walk Cinder left and right.'],
+    ['▲','Press <b>▲</b> to climb furniture beside you — or jump when there\'s only air above your head.'],
+    ['✊','Hold <b>DRAG</b> next to a piece to carry it, release to drop it and build a staircase.'],
+    ['🌋','Stack up to the glowing hole and climb floor after floor before the lava burns it all away!'],
+    ['🪙','Grab coins and power-ups on the way — ❄ freezes the lava, ⬆ boosts your jump, 🛡 saves you once.'],
+  ] : [
+    ['🕹️','<kbd>←</kbd><kbd>→</kbd> or <kbd>A</kbd><kbd>D</kbd> to walk Cinder left and right.'],
+    ['⬆️','<kbd>Space</kbd> / <kbd>W</kbd> climbs furniture beside you — or jumps when there\'s only air above.'],
+    ['✊','Hold <kbd>Shift</kbd> or <kbd>E</kbd> next to a piece to carry it; release to drop and build stairs.'],
+    ['🌋','Stack up to the glowing hole and climb floor after floor before the lava burns it all away!'],
+    ['🪙','Grab coins and power-ups — ❄ freezes the lava, ⬆ boosts your jump, 🛡 saves you once. <kbd>P</kbd> pauses.'],
+  ];
+  box.innerHTML=cards.map(c=>'<div><span class="ico">'+c[0]+'</span><span>'+c[1]+'</span></div>').join('');
+}
+
 document.getElementById('playBtn').addEventListener('click',start);
 document.getElementById('retryBtn').addEventListener('click',start);
+document.getElementById('pauseBtn').addEventListener('click',()=>{ if(state==='play')pauseGame(); });
+document.getElementById('resumeBtn').addEventListener('click',resumeGame);
+document.getElementById('quitBtn').addEventListener('click',quitToMenu);
 document.getElementById('muteBtn').addEventListener('click',()=>{ Audio.init();Audio.muted=!Audio.muted;
   document.getElementById('muteBtn').textContent=Audio.muted?'🔇':'🔊'; });
+
 function start(){ firstGesture();
   newGame(); state='play';
   document.getElementById('startScreen').classList.add('hidden');
   document.getElementById('overScreen').classList.add('hidden');
+  document.getElementById('pauseScreen').classList.add('hidden');
   document.getElementById('hud').classList.remove('hidden');
-  document.getElementById('pad').classList.remove('hidden');
+  document.getElementById('pauseBtn').classList.remove('hidden');
+  if(isTouch)document.getElementById('pad').classList.remove('hidden');
   document.getElementById('hudBest').textContent=getBest();
   document.getElementById('floorVal').textContent='0';
+  document.getElementById('scoreVal').textContent='0';
+  document.getElementById('coinVal').textContent='0';
+  Music.start();
 }
+function pauseGame(){ if(state!=='play')return; state='pause'; Music.stop(); Audio.pause();
+  document.getElementById('pauseScreen').classList.remove('hidden'); }
+function resumeGame(){ if(state!=='pause')return; state='play'; Music.start();
+  document.getElementById('pauseScreen').classList.add('hidden'); }
+function quitToMenu(){ Music.stop();
+  document.getElementById('pauseScreen').classList.add('hidden');
+  document.getElementById('hud').classList.add('hidden');
+  document.getElementById('pad').classList.add('hidden');
+  document.getElementById('pauseBtn').classList.add('hidden');
+  document.getElementById('fxBar').innerHTML='';
+  initMenu();
+  document.getElementById('startScreen').classList.remove('hidden'); }
+
+// ============================================================
+//  Scoring
+// ============================================================
+function addScore(n){ const g=game; g.score+=n; document.getElementById('scoreVal').textContent=g.score; }
 
 // ============================================================
 //  Update
@@ -424,24 +574,48 @@ function start(){ firstGesture();
 function update(dt){
   const g=game, c=g.char;
   g.t+=dt; g.upCd=Math.max(0,g.upCd-dt); g.downCd=Math.max(0,g.downCd-dt);
+  g.jbuf=Math.max(0,g.jbuf-dt); g.invulnT=Math.max(0,g.invulnT-dt);
+  g.freezeT=Math.max(0,g.freezeT-dt); g.boostT=Math.max(0,g.boostT-dt);
+  g.squash=Math.max(0,g.squash-dt*3);
   generateUpTo(g.floor+2);
 
   const grounded=!!onGround();
   c.grounded=grounded;
+  if(grounded)g.coyote=COYOTE; else g.coyote=Math.max(0,g.coyote-dt);
+
+  // ---- landing: squash, dust, thud ----
+  if(grounded && !g.wasGrounded && g.prevVy>6){
+    g.squash=clamp(g.prevVy*0.035,0.18,0.5); Audio.land();
+    for(let k=0;k<5;k++)g.parts.push({x:c.position.x+rand(-CH_W/2,CH_W/2),y:c.position.y+CH_H/2,
+      vx:rand(-70,70),vy:rand(-40,-5),g:300,life:rand(.25,.5),t:0,r:rand(1.5,3),c:'rgba(200,190,210,.7)'});
+  }
 
   // ---- horizontal walk (set BEFORE physics step) ----
   let dir=(keys.left?-1:0)+(keys.right?1:0);
-  if(dir){ c.face=dir; Body.setVelocity(c,{x:dir*WALK,y:c.velocity.y}); }
+  if(dir){ c.face=dir;
+    if(grounded)Body.setVelocity(c,{x:dir*WALK,y:c.velocity.y});
+    else Body.setVelocity(c,{x:lerp(c.velocity.x,dir*WALK,0.35),y:c.velocity.y});
+  }
   else if(grounded){ Body.setVelocity(c,{x:c.velocity.x*0.4,y:c.velocity.y}); }
 
-  // ---- UP: climb furniture, else jump (only air above) ----
+  // ---- UP: climb furniture, else jump (coyote + buffered) ----
+  const jumpV = g.boostT>0 ? JUMP_V*1.32 : JUMP_V;
+  const climbV = g.boostT>0 ? CLIMB_V*1.18 : CLIMB_V;
   let climbing=false;
-  if(keys.up && grounded && g.upCd<=0){
-    const ledge=climbLedge();
-    if(ledge!==null){ Body.setVelocity(c,{x:c.face*CLIMB_FWD,y:-CLIMB_V}); climbing=true; c.st='climb'; Audio.climb(); }
-    else { Body.setVelocity(c,{x:dir*WALK,y:-JUMP_V}); c.st='jump'; Audio.jump(); }
-    g.upCd=UP_CD;
+  const wantUp = (keys.up || g.jbuf>0);
+  if(wantUp && g.upCd<=0){
+    const canAct = grounded || g.coyote>0;
+    if(canAct){
+      const ledge=climbLedge();
+      if(ledge!==null && grounded){ Body.setVelocity(c,{x:c.face*CLIMB_FWD,y:-climbV}); climbing=true; c.st='climb'; Audio.climb(); }
+      else { Body.setVelocity(c,{x:dir*WALK,y:-jumpV}); c.st='jump'; Audio.jump(); }
+      g.upCd=UP_CD; g.coyote=0; g.jbuf=0;
+    } else if(upEdge){ g.jbuf=JBUF; }   // pressed in mid-air: buffer for landing
   }
+  upEdge=false;
+  // variable jump height — releasing ▲ early cuts the arc
+  if(!keys.up && c.velocity.y<-5) Body.setVelocity(c,{x:c.velocity.x,y:c.velocity.y*0.86});
+
   // ---- DOWN: step / climb down off a ledge ----
   if(keys.down && grounded && g.downCd<=0){
     Body.setVelocity(c,{x:c.face*3.2,y:3}); g.downCd=DOWN_CD;
@@ -459,8 +633,20 @@ function update(dt){
     }
   } else if(g.grab){ const b=g.grab; b.isSensor=false; b.held=false; Body.setVelocity(b,{x:0,y:1}); g.grab=null; Audio.drop(); }
 
+  // ---- lava surges — warned, then a burst of speed ----
+  if(g.reached>=2){
+    if(g.surgeWarnT<=0 && g.surgeT<=0 && g.t>=g.nextSurge){
+      g.surgeWarnT=2; toast('⚠ LAVA SURGE!',true); Audio.surge(); }
+    if(g.surgeWarnT>0){ g.surgeWarnT-=dt;
+      if(g.surgeWarnT<=0){ g.surgeT=3.5; shake=Math.min(shake+5,10); } }
+    if(g.surgeT>0)g.surgeT-=dt;
+    if(g.surgeT<=0 && g.surgeWarnT<=0 && g.t>=g.nextSurge) g.nextSurge=g.t+rand(20,34);
+  }
+
   // ---- lava rises, accelerating with height & time ----
   g.lavaSpeed=Math.min(72, 9 + g.floor*3.4 + g.t*0.4);
+  if(g.surgeT>0)g.lavaSpeed*=2.1;
+  if(g.freezeT>0)g.lavaSpeed=0;
   g.lavaY-=g.lavaSpeed*dt;
 
   // ---- step the physics world ----
@@ -475,16 +661,33 @@ function update(dt){
   c.anim+=dt; c.blink-=dt; if(c.blink<-0.16)c.blink=rand(2,5);
   c.carry=!!g.grab;
 
+  // ---- pickups: coins & power-ups ----
+  for(let i=g.pickups.length-1;i>=0;i--){ const p=g.pickups[i];
+    if(p.y>g.lavaY+40){ g.pickups.splice(i,1); continue; }        // consumed by lava
+    const bob=Math.sin(g.t*3+p.x)*3;
+    if(Math.abs(p.x-c.position.x)<PICK_R && Math.abs(p.y+bob-c.position.y)<PICK_R+6){
+      collectPickup(p); g.pickups.splice(i,1);
+    }
+  }
+
   // ---- floor / score ----
   const fl=Math.max(0,Math.round(-c.position.y/FLOOR_H));
-  if(fl>g.reached){ g.reached=fl; Audio.floor(); toast('FLOOR '+fl+'!'); shake=Math.min(shake+3,8);
-    for(let k=0;k<10;k++)g.parts.push(spark(c.position.x,c.position.y,choice(['#ffd24a','#8ce08c','#7fd7ff']))); }
+  if(fl>g.reached){
+    const dtFloor=g.t-g.lastFloorT; g.lastFloorT=g.t;
+    g.reached=fl; addScore(100);
+    if(dtFloor<QUICK_FLOOR && fl>1){ addScore(50); Audio.bonus(); toast('FLOOR '+fl+' — QUICK! +150'); }
+    else if(fl%5===0){ toast('🔥 FLOOR '+fl+' — LAVA RISES FASTER!'); }
+    else toast('FLOOR '+fl+'!');
+    Audio.floor(); shake=Math.min(shake+3,8);
+    for(let k=0;k<10;k++)g.parts.push(spark(c.position.x,c.position.y,choice(['#ffd24a','#8ce08c','#7fd7ff'])));
+  }
   if(fl!==g.floor){ g.floor=fl; document.getElementById('floorVal').textContent=fl; }
 
   // ---- furniture burning ----
+  const lavaLive=g.freezeT<=0;
   for(let i=g.furn.length-1;i>=0;i--){ const b=g.furn[i]; if(b.held)continue;
-    if(b.bounds.max.y >= g.lavaY-4){ if(!b.burning){ b.burning=true; if(Math.random()<0.4)Audio.fire(); } }
-    if(b.burning){ b.burn+=BURN_RATE*dt;
+    if(lavaLive && b.bounds.max.y >= g.lavaY-4){ if(!b.burning){ b.burning=true; if(Math.random()<0.4)Audio.fire(); } }
+    if(b.burning && lavaLive){ b.burn+=BURN_RATE*dt;
       if(Math.random()<0.5)g.embers.push({x:b.position.x+rand(-b.fw/2,b.fw/2),y:b.bounds.min.y,vx:rand(-12,12),vy:rand(-60,-120),life:rand(.5,1.3),t:0,r:rand(1.4,3)});
       if(b.burn>=1){ removeFurn(b); continue; } }
     if(b.bounds.min.y > g.lavaY+70){ removeFurn(b); }   // fully submerged
@@ -496,31 +699,70 @@ function update(dt){
 
   // ---- particles + lava embers ----
   updParts(g.parts,dt);
-  if(Math.random()<0.5)g.embers.push({x:rand(shaftL,shaftR),y:g.lavaY-2,vx:rand(-14,14),vy:rand(-70,-140),life:rand(1,2.2),t:0,r:rand(1.5,3.3)});
+  if(lavaLive&&Math.random()<0.5)g.embers.push({x:rand(shaftL,shaftR),y:g.lavaY-2,vx:rand(-14,14),vy:rand(-70,-140),life:rand(1,2.2),t:0,r:rand(1.5,3.3)});
   for(let i=g.embers.length-1;i>=0;i--){ const e=g.embers[i];e.t+=dt;e.x+=e.vx*dt;e.y+=e.vy*dt;e.vy+=40*dt; if(e.t>e.life)g.embers.splice(i,1); }
 
-  // ---- death: lava reaches the feet ----
-  if(c.position.y+CH_H/2>=g.lavaY && !g.dead) die();
+  // ---- boost sparkle trail ----
+  if(g.boostT>0&&Math.random()<0.4)g.parts.push({x:c.position.x+rand(-8,8),y:c.position.y+rand(-6,14),
+    vx:rand(-20,20),vy:rand(-40,-10),g:0,life:rand(.3,.6),t:0,r:rand(1.5,2.6),c:'#ffe27a'});
 
-  shake=Math.max(0,shake-dt*26); flash=Math.max(0,flash-dt*3);
+  // ---- death: lava reaches the feet (unless shielded) ----
+  if(c.position.y+CH_H/2>=g.lavaY && !g.dead && g.invulnT<=0){
+    if(g.shield){ g.shield=false; g.invulnT=1.4; Audio.shieldPop();
+      Body.setVelocity(c,{x:c.velocity.x,y:-16}); toast('🛡 SHIELD SAVED YOU!');
+      for(let k=0;k<14;k++)g.parts.push(spark(c.position.x,c.position.y+CH_H/2,choice(['#8ce08c','#c7ffd0','#fff'])));
+      shake=Math.min(shake+5,10);
+    } else die();
+  }
+
+  updateFxBar(g);
+  g.wasGrounded=grounded; g.prevVy=c.velocity.y;
+  shake=Math.max(0,shake-dt*26); flash=Math.max(0,flash-dt*3); freezeFlash=Math.max(0,freezeFlash-dt*2);
+}
+
+function collectPickup(p){
+  const g=game;
+  if(p.type==='coin'){ g.coins++; addScore(25); Audio.coin();
+    document.getElementById('coinVal').textContent=g.coins;
+    for(let k=0;k<6;k++)g.parts.push(spark(p.x,p.y,'#ffd24a')); return; }
+  Audio.power();
+  for(let k=0;k<12;k++)g.parts.push(spark(p.x,p.y,choice(['#fff','#9fdcff','#c7ffd0','#ffe27a'])));
+  if(p.type==='freeze'){ g.freezeT=FREEZE_T; freezeFlash=1; toast('❄ LAVA FROZEN!'); }
+  else if(p.type==='boost'){ g.boostT=BOOST_T; toast('⬆ JUMP BOOST!'); }
+  else if(p.type==='shield'){ g.shield=true; toast('🛡 SHIELD!'); }
+}
+
+function updateFxBar(g){
+  const bits=[];
+  if(g.freezeT>0)bits.push('<span class="chip freeze">❄ '+Math.ceil(g.freezeT)+'s</span>');
+  if(g.boostT>0)bits.push('<span class="chip boost">⬆ '+Math.ceil(g.boostT)+'s</span>');
+  if(g.shield)bits.push('<span class="chip shield">🛡</span>');
+  const el=document.getElementById('fxBar');
+  if(el.innerHTML!==bits.join(''))el.innerHTML=bits.join('');
 }
 
 function die(){
-  const g=game,c=g.char; g.dead=true; state='dead'; Audio.die(); shake=16; flash=1;
+  const g=game,c=g.char; g.dead=true; state='dead'; Audio.die(); Music.stop(); shake=16; flash=1;
   for(let k=0;k<26;k++)g.parts.push(spark(c.position.x,c.position.y,choice(['#ff7a3c','#ffd24a','#ff3d3d'])));
-  const best=getBest(), isNew=g.reached>best; if(isNew)setBest(g.reached);
+  const best=getBest(), isNewFloor=g.reached>best; if(isNewFloor)setBest(g.reached);
+  const bestS=getBestScore(), isNewScore=g.score>bestS; if(isNewScore)setBestScore(g.score);
   setTimeout(()=>{ document.getElementById('finalScore').textContent=g.reached;
-    document.getElementById('newBestMsg').classList.toggle('hidden',!isNew);
+    document.getElementById('stScore').textContent=g.score;
+    document.getElementById('stCoins').textContent=g.coins;
+    document.getElementById('stTime').textContent=Math.round(g.t)+'s';
+    document.getElementById('newBestMsg').classList.toggle('hidden',!(isNewFloor||isNewScore));
     document.getElementById('overScreen').classList.remove('hidden');
     document.getElementById('hud').classList.add('hidden');
-    document.getElementById('pad').classList.add('hidden'); },600);
+    document.getElementById('pad').classList.add('hidden');
+    document.getElementById('pauseBtn').classList.add('hidden');
+    document.getElementById('fxBar').innerHTML=''; },600);
 }
 
 // ---------- particles / toast ----------
 function spark(x,y,c){ return {x,y,vx:rand(-160,160),vy:rand(-260,-40),g:600,life:rand(.4,.9),t:0,r:rand(2,4.5),c}; }
 function updParts(a,dt){ for(let i=a.length-1;i>=0;i--){const p=a[i];p.t+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.g*dt;if(p.t>p.life)a.splice(i,1);} }
 let toastT=0; const toastEl=document.getElementById('toast');
-function toast(txt){ toastEl.textContent=txt; toastEl.classList.add('show'); toastT=1.1; }
+function toast(txt,warn){ toastEl.textContent=txt; toastEl.classList.toggle('warn',!!warn); toastEl.classList.add('show'); toastT=1.1; }
 
 // ============================================================
 //  Render
@@ -532,12 +774,15 @@ function render(){
   drawBackground(g);
   for(const b of g.statics) drawStatic(b,g);
   drawExit(g);
+  drawPickups(g);
   for(const b of g.furn) drawFurn(b,g);
   drawChar(g);
   drawLava(g);
   drawWalls();
   drawParts(g.parts,g);
   if(flash>0){ ctx.fillStyle='rgba(255,90,30,'+(flash*0.5)+')'; ctx.fillRect(-20,-20,W+40,H+40); }
+  if(freezeFlash>0){ ctx.fillStyle='rgba(120,200,255,'+(freezeFlash*0.22)+')'; ctx.fillRect(-20,-20,W+40,H+40); }
+  if(g.surgeWarnT>0 && (g.t*6|0)%2===0){ ctx.fillStyle='rgba(255,60,20,.12)'; ctx.fillRect(-20,-20,W+40,H+40); }
   ctx.restore();
 }
 
@@ -609,6 +854,31 @@ function drawExit(g){
   ctx.beginPath();ctx.moveTo(cx,yy-6-bob);ctx.lineTo(cx-9,yy-15-bob);ctx.lineTo(cx+9,yy-15-bob);ctx.closePath();ctx.fill();
   ctx.textAlign='left';
 }
+function drawPickups(g){
+  for(const p of g.pickups){
+    const bob=Math.sin(g.t*3+p.x)*3, sy=p.y+bob-g.camY;
+    if(sy<-40||sy>H+40)continue;
+    if(p.type==='coin'){
+      const sc=Math.abs(Math.sin(g.t*4+p.x*0.3))*0.7+0.3;
+      ctx.save(); ctx.translate(p.x,sy); ctx.scale(sc,1);
+      const gr=ctx.createLinearGradient(0,-8,0,8);gr.addColorStop(0,'#ffe98a');gr.addColorStop(1,'#e0a020');
+      ctx.fillStyle=gr;ctx.beginPath();ctx.arc(0,0,8,0,7);ctx.fill();
+      ctx.strokeStyle='#a06a10';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,8,0,7);ctx.stroke();
+      ctx.fillStyle='#a06a10';ctx.font='900 9px Trebuchet MS';ctx.textAlign='center';ctx.fillText('$',0,3.4);
+      ctx.restore(); ctx.textAlign='left';
+    } else {
+      // glossy bubble with icon
+      const cols={freeze:'rgba(120,200,255,',boost:'rgba(255,220,110,',shield:'rgba(140,224,140,'};
+      const c0=cols[p.type];
+      ctx.fillStyle=c0+'.25)';ctx.beginPath();ctx.arc(p.x,sy,15,0,7);ctx.fill();
+      ctx.strokeStyle=c0+'.8)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,sy,15,0,7);ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,.35)';ctx.beginPath();ctx.ellipse(p.x-5,sy-6,4,2.6,-0.6,0,7);ctx.fill();
+      ctx.font='14px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(p.type==='freeze'?'❄':p.type==='boost'?'⬆':'🛡',p.x,sy+1);
+      ctx.textAlign='left';ctx.textBaseline='alphabetic';
+    }
+  }
+}
 function drawFurn(b,g){
   const sy=b.position.y-g.camY; if(sy<-90||sy>H+90)return;
   ctx.save(); ctx.translate(b.position.x,sy); ctx.rotate(b.angle);
@@ -633,8 +903,21 @@ function drawChar(g){
   const air=(st==='jump'||st==='fall'), climb=(st==='climb'), walk=(st==='walk'), carry=c.carry;
   const scared=air||climb||(g.lavaY-c.position.y)<80;
   const w=CH_W, h=CH_H;
+  // invulnerability blink
+  if(g.invulnT>0 && (g.t*12|0)%2===0)return;
   ctx.save(); ctx.translate(cx,cy);
+
+  // boost aura / shield ring (drawn unflipped, behind the body)
+  if(g.boostT>0){ ctx.fillStyle='rgba(255,226,122,.16)';
+    ctx.beginPath();ctx.ellipse(0,2,w*0.95,h*0.72,0,0,7);ctx.fill(); }
+  if(g.shield){ ctx.strokeStyle='rgba(140,224,140,'+(0.5+Math.sin(g.t*5)*0.25)+')';ctx.lineWidth=2;
+    ctx.beginPath();ctx.ellipse(0,0,w*0.92,h*0.7,0,0,7);ctx.stroke(); }
+
   if(f<0)ctx.scale(-1,1);           // face left
+  // landing squash & jump stretch
+  const sq=g.squash;
+  if(sq>0)ctx.scale(1+sq*0.55,1-sq*0.45);
+  else if(air&&c.velocity.y<-4)ctx.scale(0.94,1.08);
 
   // shadow
   if(st==='idle'||walk){ ctx.fillStyle='rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0,h/2+2,w*0.6,4,0,0,7); ctx.fill(); }
@@ -700,18 +983,25 @@ function drawChar(g){
 }
 function drawLava(g){
   const ly=g.lavaY-g.camY; if(ly>H+40)return; const top=Math.max(-40,ly), t=g.t;
-  const gl=ctx.createLinearGradient(0,top-70,0,top+10);gl.addColorStop(0,'rgba(255,90,20,0)');gl.addColorStop(1,'rgba(255,120,30,.35)');
+  const frozen=g.freezeT>0;
+  const gl=ctx.createLinearGradient(0,top-70,0,top+10);
+  if(frozen){gl.addColorStop(0,'rgba(120,200,255,0)');gl.addColorStop(1,'rgba(120,200,255,.25)');}
+  else{gl.addColorStop(0,'rgba(255,90,20,0)');gl.addColorStop(1,'rgba(255,120,30,.35)');}
   ctx.fillStyle=gl;ctx.fillRect(0,top-70,W,80);
   const bg=ctx.createLinearGradient(0,top,0,H);
-  bg.addColorStop(0,'#ffd24a');bg.addColorStop(0.12,'#ff8a2c');bg.addColorStop(0.5,'#ff3d1e');bg.addColorStop(1,'#a11208');
+  if(frozen){bg.addColorStop(0,'#bfe6ff');bg.addColorStop(0.12,'#7ab8e8');bg.addColorStop(0.5,'#9a4030');bg.addColorStop(1,'#5a0e06');}
+  else{bg.addColorStop(0,'#ffd24a');bg.addColorStop(0.12,'#ff8a2c');bg.addColorStop(0.5,'#ff3d1e');bg.addColorStop(1,'#a11208');}
   ctx.fillStyle=bg;ctx.beginPath();ctx.moveTo(0,top);
-  for(let x=0;x<=W;x+=12){const y=top+Math.sin(x*0.045+t*3)*5+Math.sin(x*0.11+t*4.5)*3;ctx.lineTo(x,y);}
+  const wobA=frozen?1.2:5, wobB=frozen?0.8:3, wt=frozen?0:t;
+  for(let x=0;x<=W;x+=12){const y=top+Math.sin(x*0.045+wt*3)*wobA+Math.sin(x*0.11+wt*4.5)*wobB;ctx.lineTo(x,y);}
   ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();ctx.fill();
-  ctx.strokeStyle='rgba(255,240,180,.85)';ctx.lineWidth=3;ctx.beginPath();
-  for(let x=0;x<=W;x+=12){const y=top+Math.sin(x*0.045+t*3)*5+Math.sin(x*0.11+t*4.5)*3;x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+  ctx.strokeStyle=frozen?'rgba(220,245,255,.9)':'rgba(255,240,180,.85)';ctx.lineWidth=3;ctx.beginPath();
+  for(let x=0;x<=W;x+=12){const y=top+Math.sin(x*0.045+wt*3)*wobA+Math.sin(x*0.11+wt*4.5)*wobB;x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
   ctx.stroke();
-  ctx.fillStyle='rgba(255,220,120,.5)';
-  for(let i=0;i<7;i++){const bx=(i*97+t*30*(i%3+1))%W;const by=top+30+((i*53+t*40)%Math.max(30,H-top-30));ctx.beginPath();ctx.arc(bx,by,3+(i%3),0,7);ctx.fill();}
+  if(!frozen){
+    ctx.fillStyle='rgba(255,220,120,.5)';
+    for(let i=0;i<7;i++){const bx=(i*97+t*30*(i%3+1))%W;const by=top+30+((i*53+t*40)%Math.max(30,H-top-30));ctx.beginPath();ctx.arc(bx,by,3+(i%3),0,7);ctx.fill();}
+  }
   for(const e of g.embers){const a=1-e.t/e.life;ctx.globalAlpha=a;ctx.fillStyle=a>0.5?'#ffd24a':'#ff5a2c';ctx.beginPath();ctx.arc(e.x,e.y-g.camY,e.r,0,7);ctx.fill();}
   ctx.globalAlpha=1;
 }
@@ -723,15 +1013,17 @@ function drawParts(a,g){ for(const p of a){const al=1-p.t/p.life;ctx.globalAlpha
 function frame(ts){
   const dt=Math.min(0.033,(ts-last)/1000||0); last=ts;
   if(state==='play')update(dt);
-  else if(game){ game.t+=dt; updParts(game.parts,dt); shake=Math.max(0,shake-dt*26); flash=Math.max(0,flash-dt*3); }
+  else if(state!=='pause'&&game){ game.t+=dt; updParts(game.parts,dt); shake=Math.max(0,shake-dt*26); flash=Math.max(0,flash-dt*3); }
   if(toastT>0){ toastT-=dt; if(toastT<=0)toastEl.classList.remove('show'); }
   if(game)render(); else {ctx.fillStyle='#140c24';ctx.fillRect(0,0,W,H);}
   requestAnimationFrame(frame);
 }
-function initMenu(){ newGame(); state='menu'; document.getElementById('startBest').textContent=getBest(); }
+function initMenu(){ newGame(); state='menu';
+  document.getElementById('startBest').textContent=getBest();
+  document.getElementById('startBestScore').textContent=getBestScore(); }
 window.addEventListener('resize',resize);
-document.addEventListener('visibilitychange',()=>{ if(document.hidden)last=0; });
-resize(); initMenu(); requestAnimationFrame(frame);
+document.addEventListener('visibilitychange',()=>{ if(document.hidden){ last=0; if(state==='play')pauseGame(); } });
+resize(); buildHow(); initMenu(); requestAnimationFrame(frame);
 })();
 </script>
 </body>
