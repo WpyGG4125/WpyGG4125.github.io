@@ -57,8 +57,13 @@ button { font-family:inherit; cursor:pointer; }
 .land { fill:#3a352a; stroke:#6b5f45; stroke-width:.7; }
 .lake { fill:#18313f; stroke:#2c4a5a; stroke-width:.4; }
 .river{ fill:none; stroke:#2e5468; stroke-width:.8; opacity:.8; }
-.polity { cursor:pointer; transition:fill-opacity .15s; }
-.polity-border { fill:none; stroke:rgba(10,8,4,.55); stroke-width:1.1; }
+/* 半透明施加在整个图层上, 而非逐个色块: 相邻疆域的同色描边彼此交叠,
+   逐块半透明会把每条国界叠成深色重影, 整层合成一次则不会。 */
+#gpolity { opacity:.88; }
+#gborder { opacity:.55; }
+.polity { cursor:pointer; transition:filter .15s; }
+.polity:hover { filter:brightness(1.18); }
+.polity-border { fill:none; stroke:#0a0804; stroke-width:1.1; }
 .noptr { pointer-events:none; }
 .plabel {
   fill:#fff; stroke:rgba(0,0,0,.75); stroke-width:2.6; paint-order:stroke;
