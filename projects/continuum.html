@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Continuum — Pengyue Wang</title>
-    <meta name="description" content="Continuum — a free, native macOS control center for cleaning, disk visualization, security scanning, and hardware telemetry. No ads, no trackers.">
+    <meta name="description" content="Continuum — a free, native macOS control center for cleaning, disk visualization, security scanning, and hardware telemetry. Universal builds for macOS 10.15 Catalina through macOS 13 Ventura and later. No ads, no trackers.">
     <link href="../bootstrap.min.css" rel="stylesheet">
     <link rel="shortcut icon" type="image/x-icon" href="../favicon.ico?">
     <script src="../bootstrap.bundle.min.js"></script>
@@ -296,6 +296,105 @@
         .req-key { color: rgba(255,255,255,0.5); }
         .req-val { font-weight: 600; text-align: right; }
 
+        /* ---------- Downloads / version history ---------- */
+        .dl-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 26px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: all .3s ease;
+        }
+
+        .dl-card:hover {
+            border-color: rgba(77,171,247,0.4);
+            background: rgba(77,171,247,0.05);
+            transform: translateY(-4px);
+        }
+
+        .dl-card.current {
+            border-color: rgba(77,171,247,0.45);
+            background: rgba(77,171,247,0.07);
+        }
+
+        .dl-badge {
+            display: inline-block;
+            align-self: flex-start;
+            font-size: .68rem;
+            letter-spacing: .09em;
+            text-transform: uppercase;
+            font-weight: 700;
+            border-radius: 999px;
+            padding: 5px 13px;
+            margin-bottom: 14px;
+            background: rgba(255,255,255,0.07);
+            color: rgba(255,255,255,0.55);
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+
+        .dl-badge.latest {
+            background: rgba(77,171,247,0.18);
+            color: var(--c-blue-2);
+            border-color: rgba(77,171,247,0.4);
+        }
+
+        .dl-title { font-weight: 700; font-size: 1.15rem; margin-bottom: 6px; }
+        .dl-sub { color: rgba(255,255,255,0.55); font-size: .88rem; }
+        .dl-note { color: rgba(255,255,255,0.45); font-size: .82rem; margin-top: 10px; }
+
+        .btn-dl-sm {
+            display: block;
+            text-align: center;
+            background: rgba(77,171,247,0.15);
+            border: 1px solid rgba(77,171,247,0.4);
+            color: var(--c-blue-2);
+            font-weight: 700;
+            padding: 11px 18px;
+            border-radius: 11px;
+            text-decoration: none;
+            transition: all .2s ease;
+        }
+
+        .btn-dl-sm:hover { background: rgba(77,171,247,0.3); color: #fff; }
+
+        .btn-dl-sm.primary {
+            background: linear-gradient(135deg, var(--c-blue-1), var(--c-blue-2));
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 8px 22px rgba(24,100,171,0.4);
+        }
+
+        .btn-dl-sm.primary:hover { color: #fff; }
+
+        .dl-actions { margin-top: auto; padding-top: 20px; }
+
+        .dl-hash {
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-family: "SF Mono", Menlo, Consolas, monospace;
+            font-size: .7rem;
+            color: rgba(255,255,255,0.5);
+            word-break: break-all;
+        }
+
+        .archive-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 18px;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            flex-wrap: wrap;
+        }
+
+        .archive-row:last-child { border-bottom: none; }
+        .archive-row .btn-dl-sm { display: inline-block; }
+
         .honesty-note {
             border-left: 3px solid var(--c-blue-2);
             padding: 18px 24px;
@@ -354,18 +453,22 @@
         <div class="hero-inner">
             <img src="continuum/icon.png" alt="Continuum app icon" class="app-icon">
             <h1>Continuum</h1>
-            <div class="eyebrow-pill">macOS App · v1.0.3</div>
+            <div class="eyebrow-pill">macOS App · v1.0.4</div>
             <p class="hero-tagline">See it. Clean it. Secure it. Know your Mac.</p>
 
-            <a href="continuum/Continuum-1.0.3.dmg" class="btn-download" download>⬇ Download for macOS</a>
-            <div class="download-meta">v1.0.3 &nbsp;·&nbsp; 1.9 MB &nbsp;·&nbsp; macOS 13+ &nbsp;·&nbsp; Apple Silicon &amp; Intel</div>
+            <a href="continuum/Continuum-1.0.4.dmg" class="btn-download" download>⬇ Download for macOS</a>
+            <div class="download-meta">v1.0.4 &nbsp;·&nbsp; 4.8 MB &nbsp;·&nbsp; macOS 13+ &nbsp;·&nbsp; Apple Silicon &amp; Intel</div>
 
             <div>
                 <div class="hash-row">
                     <span class="hash-label">MD5</span>
-                    <span id="md5hash">682870cc268b3610cb97dbf93756d045</span>
-                    <button class="btn-copy" id="copyBtn" onclick="copyHash()">Copy</button>
+                    <span class="hash-value">1cc472df93da6ede7ff230e561fa9a79</span>
+                    <button class="btn-copy" onclick="copyHash(this)">Copy</button>
                 </div>
+            </div>
+
+            <div class="download-meta">
+                On macOS 12, 11 or 10.15? <a href="#downloads" style="color: var(--c-blue-2);">Get the matching build ↓</a>
             </div>
         </div>
     </section>
@@ -439,7 +542,7 @@
             <h2 class="display-5 fw-bold mb-3">One app. Every corner of your Mac.</h2>
             <p class="lead mb-5" style="color: rgba(255,255,255,0.7); max-width: 720px;">
                 Continuum is a single, self-contained native app spanning cleaning, disk
-                visualization, security, privacy, app management, and deep hardware telemetry —
+                visualization, security, privacy, app management, and deep hardware telemetry 
                 so you don't need eight separate utilities (or a subscription to each one).
             </p>
 
@@ -510,7 +613,7 @@
             </div>
 
             <div class="honesty-note mt-5">
-                <i>Honest about its limits:</i> Not every Mac has every sensor, and some
+                Not every Mac has every sensor, and some
                 hardware has no stable public API — Continuum says so in the UI instead of faking a
                 reading. The network monitor has no kernel filter entitlement, so it watches
                 established connections and enforces blocks via <code>pf</code> rather than claiming
@@ -542,11 +645,134 @@
             <div class="section-eyebrow mb-2">Before you install</div>
             <h2 class="display-5 fw-bold mb-4">System requirements</h2>
             <div class="req-table">
-                <div class="req-row"><span class="req-key">macOS version</span><span class="req-val">macOS 13 (Ventura) or later</span></div>
+                <div class="req-row"><span class="req-key">macOS version</span><span class="req-val">macOS 13 (Ventura) or later — separate builds go back to macOS 10.15 Catalina</span></div>
                 <div class="req-row"><span class="req-key">Architecture</span><span class="req-val">Apple Silicon &amp; Intel</span></div>
                 <div class="req-row"><span class="req-key">Permissions</span><span class="req-val">Full Disk Access (one-time grant, for cleaning &amp; security features)</span></div>
                 <div class="req-row"><span class="req-key">Sandboxing</span><span class="req-val">Not sandboxed — required for direct cache/disk access</span></div>
                 <div class="req-row"><span class="req-key">License</span><span class="req-val">CC BY-NC-SA 4.0 — free for personal, non-commercial use</span></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-wrap" id="downloads" style="background: rgba(255,255,255,0.015);">
+        <div class="container">
+            <div class="section-eyebrow mb-2">Downloads</div>
+            <h2 class="display-5 fw-bold mb-3">Every build, every macOS</h2>
+            <p class="lead mb-5" style="color: rgba(255,255,255,0.7); max-width: 780px;">
+                Version 1.0.4 ships as four universal (Apple Silicon &amp; Intel) builds compiled
+                from one source tree. Pick the one matching the oldest macOS you need to run it
+                on. Every version-sensitive call is resolved at runtime, so an older build still
+                uses the newest APIs present on whatever Mac it launches on.
+            </p>
+
+            <div class="row g-4">
+                <div class="col-lg-3 col-md-6">
+                    <div class="dl-card current">
+                        <span class="dl-badge latest">Latest · recommended</span>
+                        <div class="dl-title">macOS 13 Ventura +</div>
+                        <div class="dl-sub">v1.0.4 &nbsp;·&nbsp; 4.8 MB</div>
+                        <div class="dl-note">The standard build. Use this unless your Mac cannot run Ventura.</div>
+                        <div class="dl-actions">
+                            <a href="continuum/Continuum-1.0.4.dmg" class="btn-dl-sm primary" download>⬇ Download</a>
+                            <div class="dl-hash">
+                                <span class="hash-label">MD5</span>
+                                <span class="hash-value">1cc472df93da6ede7ff230e561fa9a79</span>
+                                <button class="btn-copy" onclick="copyHash(this)">Copy</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <div class="dl-card">
+                        <span class="dl-badge">Back-deployed</span>
+                        <div class="dl-title">macOS 12 Monterey</div>
+                        <div class="dl-sub">v1.0.4 &nbsp;·&nbsp; 4.9 MB</div>
+                        <div class="dl-note">Charts framework replaced with a hand-drawn bar chart; everything else identical.</div>
+                        <div class="dl-actions">
+                            <a href="continuum/Continuum-1.0.4-macOS12.0.dmg" class="btn-dl-sm" download>⬇ Download</a>
+                            <div class="dl-hash">
+                                <span class="hash-label">MD5</span>
+                                <span class="hash-value">1564522416434969406f851794fd4023</span>
+                                <button class="btn-copy" onclick="copyHash(this)">Copy</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <div class="dl-card">
+                        <span class="dl-badge">Back-deployed</span>
+                        <div class="dl-title">macOS 11 Big Sur</div>
+                        <div class="dl-sub">v1.0.4 &nbsp;·&nbsp; 5.1 MB</div>
+                        <div class="dl-note">File pickers fall back to <code>NSOpenPanel</code>; the disk map is drawn through CoreGraphics.</div>
+                        <div class="dl-actions">
+                            <a href="continuum/Continuum-1.0.4-macOS11.0.dmg" class="btn-dl-sm" download>⬇ Download</a>
+                            <div class="dl-hash">
+                                <span class="hash-label">MD5</span>
+                                <span class="hash-value">44b559bf2c059df8a4151304ea642d7b</span>
+                                <button class="btn-copy" onclick="copyHash(this)">Copy</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <div class="dl-card">
+                        <span class="dl-badge">Back-deployed</span>
+                        <div class="dl-title">macOS 10.15 Catalina</div>
+                        <div class="dl-sub">v1.0.4 &nbsp;·&nbsp; 5.4 MB</div>
+                        <div class="dl-note">Runs on an AppKit host with a 71-entry Unicode icon table in place of SF Symbols.</div>
+                        <div class="dl-actions">
+                            <a href="continuum/Continuum-1.0.4-macOS10.15.dmg" class="btn-dl-sm" download>⬇ Download</a>
+                            <div class="dl-hash">
+                                <span class="hash-label">MD5</span>
+                                <span class="hash-value">338bbd621be20e1eb82cc606cb9779d9</span>
+                                <button class="btn-copy" onclick="copyHash(this)">Copy</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="honesty-note mt-5">
+                The macOS 12, 11 and 10.15 builds are
+                compile-, link- and signature-verified, and all twelve interface languages resolve,
+                but they have not been runtime-tested on those systems, they are offered as-is. 
+                If one misbehaves on your Mac, the Ventura build is the tested one.
+            </div>
+
+            <h3 class="fw-bold mt-5 mb-3" style="font-size: 1.5rem;">Past versions</h3>
+            <p style="color: rgba(255,255,255,0.6); max-width: 780px;">
+                These predate the free-space wipe, the privileged
+                root disk scan and back-deployment. MacOS 13 or later only.
+            </p>
+
+            <div class="req-table mt-4">
+                <div class="archive-row">
+                    <div>
+                        <div class="dl-title mb-1">Continuum 1.0.3</div>
+                        <div class="dl-sub">1.9 MB &nbsp;·&nbsp; macOS 13+ &nbsp;·&nbsp; Apple Silicon &amp; Intel</div>
+                        <div class="dl-hash">
+                            <span class="hash-label">MD5</span>
+                            <span class="hash-value">d959996c9e275298e2b903dce4f264c1</span>
+                            <button class="btn-copy" onclick="copyHash(this)">Copy</button>
+                        </div>
+                    </div>
+                    <a href="continuum/Continuum-1.0.3.dmg" class="btn-dl-sm" download>⬇ Download</a>
+                </div>
+                <div class="archive-row">
+                    <div>
+                        <div class="dl-title mb-1">Continuum 1.0.2</div>
+                        <div class="dl-sub">1.9 MB &nbsp;·&nbsp; macOS 13+ &nbsp;·&nbsp; Apple Silicon &amp; Intel</div>
+                        <div class="dl-hash">
+                            <span class="hash-label">MD5</span>
+                            <span class="hash-value">f4c92cfc0169beb053f5fa882b610d6e</span>
+                            <button class="btn-copy" onclick="copyHash(this)">Copy</button>
+                        </div>
+                    </div>
+                    <a href="continuum/Continuum-1.0.2.dmg" class="btn-dl-sm" download>⬇ Download</a>
+                </div>
             </div>
         </div>
     </section>
@@ -573,9 +799,9 @@
     <script>
         document.getElementById('year').textContent = new Date().getFullYear();
 
-        function copyHash() {
-            const hash = document.getElementById('md5hash').textContent.trim();
-            const btn = document.getElementById('copyBtn');
+        function copyHash(btn) {
+            const row = btn.closest('.hash-row, .dl-hash');
+            const hash = row.querySelector('.hash-value').textContent.trim();
 
             function showCopied() {
                 const original = btn.textContent;
